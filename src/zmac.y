@@ -214,7 +214,7 @@
 #endif
 #endif
 
-#if defined(__APPLE__) || defined(__linux__)
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__linux__)
 #include <unistd.h>	// just for unlink
 #endif
 
