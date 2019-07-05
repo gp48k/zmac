@@ -1,0 +1,10 @@
+*.o
+y.tab.c
+y.tab.h
+zmac
+zmac.c
+zmac.h
+zmac.tab.c
+zmac.tab.h
+doc
+doc.inl
