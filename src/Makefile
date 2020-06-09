@@ -1,15 +1,13 @@
-# On FreeBSD (and systems derived from BSD) there's a dependency
-# on bison(1) to be used to generate the parser.  As these
-# systems have Berkeley yacc as default, there is a need to state
-# this on the Makefile.  So it has been included below.  
-# This way, software can be compiled in linux, Mac OS, and
-# FreeBSD.
+# On Mac OSX gcc is required as clang complains bitterly about the old style
+# C delarations used.
 
-CC=cc
-CXX=c++
+CC=gcc
+CXX=g++
 DEP=zmac.o mio.o doc.o zi80dis.o
 
-YACC = bison -y
+# Some systems like CentOS may require this
+# YACC=bison -y
+# Is there a YACCFLAGS?
 
 zmac: doc.inl $(DEP)
 	$(CXX) -Wall $(CXXFLAGS) -o zmac $(DEP)
