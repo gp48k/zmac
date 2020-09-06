@@ -216,7 +216,7 @@
  * tjh 9-5-20	Add -Dsym to allow definition of symbols on the command line.
  *		ZMAC_ARGS environment variable added to command line.
  *
- * gwp 25-8-20	Fix crash in "out (c),0"
+ * gwp 25-8-20	Fix crash in "out (c),0".  Make "in f,(c)" work.
  */
 
 #if defined(__GNUC__)
@@ -1849,6 +1849,7 @@ void do_defl(struct item *sym, struct expr *val, int call_list);
 %token <itemptr> HL
 %token <itemptr> INDEX
 %token <itemptr> AF
+%token <itemptr> TK_F
 %token AFp
 %token <itemptr> SP
 %token <itemptr> MISCREG
@@ -3414,7 +3415,7 @@ operation:
 	INP realreg
 		{ emit(2, E_CODE, 0, 0355, 0100 + ($2 << 3)); }
 |
-	TK_IN 'F' ',' '(' TK_C ')'
+	TK_IN TK_F ',' '(' TK_C ')'
 		{ emit(2, E_CODE, 0, 0355, 0160); }
 |
 	TK_IN '(' TK_C ')'
@@ -4391,6 +4392,7 @@ struct	item	keytab[] = {
 	{".extern",	0,	EXTRN,		VERB },
 	{".extrn",	0,	EXTRN,		VERB },
 	{"exx",		0331,	NOOPERAND,	VERB | Z80 },
+	{"f",		0,	TK_F,		Z80 },
 	{".flist",	4,	LIST,		VERB },
 	{"ge",		0,	GE,		0 },
 	{".ge.",	0,	MROP_GE,	TERM | MRASOP },
