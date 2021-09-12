@@ -14,7 +14,8 @@ and so on.  For more friendly usage in make files and integrated development
 environments the _-o_, _--oo_, _--xo_ and _--xd_ options may be used to select
 sepcific output file formats and where they are written.
 
-Undocumented@undoc Z-80 instructions are supported as well as 8080 code.
+Undocumented@undoc Z-80 instructions are supported as well as 8080 and
+Z-180 (aka HD64180).
 
 zmac strives to be a powerful assembler with expressions familiar to C
 programmers while providing good backward compatibility with original
@@ -33,6 +34,8 @@ zmac
 [ --rel ]
 [ --rel7 ]
 [ --nmnv ]
+[ --z180 ]
+[ --fcal ]
 [ --doc ]
 [ --zmac ]
 [ -8bcefghijJlLmnopstz ]
@@ -94,6 +97,11 @@ the end of the command line.
   are local to their file thus avoid multiple definition when brought in
   with _include_.
  
+ --z180
+  Use Z-180 timings and extended instructions.  Undocumented Z-80 instructions
+  will generate errors as the Z-180 (or H64810) does not support them.
+  Equivalent to _.z180_ pseudo-op.
+ 
  --dep
   Print all files read by _include_, _incbin_ and _import_.
  
@@ -108,6 +116,11 @@ the end of the command line.
  
  -Dsymbol
   Define _symbol_ to be 1 before assembly.
+ 
+ --fcal
+  Always treat an indentifier in the first column as a label.  zmac uses
+  various heuristics in the case of ambiguity when a label does not have
+  a colon.  This option turns heuristics off.
  
  -8
   Accept 8080 mnemonics preferentially and use 8080 instruction timings.
@@ -413,6 +426,12 @@ _8080_
 _z80_
 |Make cycle counting operators return Z-80 cycle counts and
 |interpret any ambiguous assembly statements as Zilog Z-80 mnemonics.
+|_CP_ will be interpreted as "compare accumulator" and _JP_ as "jump unconditionally".
+
+_z180_
+|Allow assembly of Z-180 instructions.
+|Make cycle counting operators return Z-180 cycle counts and
+|interpret any ambiguous assembly statements as Zilog Z-180 mnemonics.
 |_CP_ will be interpreted as "compare accumulator" and _JP_ as "jump unconditionally".
 
 _jperror enable_
@@ -868,10 +887,13 @@ and message appear just after the line containing the error.
   A invalid register was given to an instruction.  For example, _LD B,(DE)_
   or _ADD HL,IX_.
  Z
-  Z-80 instruction in 8080 mode error
+  Invalid instruction.
  ##
-  An instruction was assembled that is only valid on the Z-80 but _.8080_
-  (or _-8_) mode is in effect.  However, use use of Z-80 mnemonics that
+  The instruction is not valid for the current architecture.  For example,
+  a Z-80@zmn instruction in 8080 mode (_.8080_ or _-8_ mode is in effect).
+  Or a Z-180@zzmn instruction in 8080 or Z-80 mode.
+  Or an undocumented Z-80 instruction in Z-180 mode.
+  However, use use of Z-80 mnemonics that
   output valid 8080 instructions is always OK.
  H
   $hex constant interpreted as symbol warning
@@ -909,7 +931,8 @@ _--oo rel_ or _-o file.rel_ then all other output formats are suppressed
  .ams
   AMSDOS executable format for Amstrad computers.
  .bds
-  For source-level debugging in trs80gp@http://www.48k.ca/trs80gp.html
+  For source-level debugging and automatic memory protecttion in
+  trs80gp@http://www.48k.ca/trs80gp.html
  .1500.cas
   TRS-80 high-speed (1500 baud) cassette SYSTEM file.  The internal name of the
   file is the source file name shortened to 6 characters with suffixes
@@ -1001,6 +1024,71 @@ where zmac pays attention to the trailing quotes and emits exchange
 instructions as needed has been considered.
 
 ---
+.Official Zilog\zsyn Syntax
+
+The official Zilog syntax for Z-80 has some rather arbitrary restrictions
+that zmac ignores.  For instance, _add a,b_ is the only correct form but
+_sub a,b_ is invalid as _sub b_ must be used.
+Here is a list of
+the official and alternate forms of the various affected instructions.
+_rmn_ refers to _a_, _b_, _c_, _d_, _e_, _h_, _l_, _(hl)_, _(ix+d)_, _(iy+d)_
+or 8 bit immediate value.
+
+ _   Official        Accepted Variant _
+  
+ _ add   a,rmn         add   rmn_
+  
+ _ adc   a,rmn         adc   rmn_
+  
+ _ sub   rmn           sub   a,rmn_
+  
+ _ sbc   a,rmn         sbc   rmn_
+  
+ _ cp    rmn           cp    a,rmn_
+  
+ _ and   rmn           and   a,rmn_
+  
+ _ xor   rmn           xor   a,rmn_
+  
+ _ or    rmn           or    a,rmn_
+  
+ _ jp    (hl)          jp    hl_
+  
+ _ jp    (ix)          jp    ix_
+  
+ _ jp    (iy)          jp    iy_
+  
+ _ ex    de,hl         ex    hl,de_
+  
+ _ ex    hl,(sp)       ex    (sp),hl
+  
+ _ ex    ix,(sp)       ex    (sp),ix
+  
+ _ ex    iy,(sp)       ex    (sp),iy
+  
+ _ in    a,(n)         in    a,n_
+  
+ _ out   (n),a         out   n,a_
+  
+ _ in    r,(c)         in    r,(bc)_
+  
+ _ out   (c),r         out   (bc),r_
+  
+ _ rst   8             rst   1_
+  
+ _ rst   16            rst   2_
+  
+ _ rst   24            rst   3_
+  
+ _ rst   32            rst   4_
+  
+ _ rst   40            rst   5_
+  
+ _ rst   48            rst   6_
+  
+ _ rst   56            rst   7_
+
+---
 .Mnemonic Values\mneval
 
 Values for 8080 mnemonics.  Note that _cpi_ and _jp_ are interpreted as
@@ -1046,7 +1134,7 @@ Values for 8080 mnemonics.  Note that _cpi_ and _jp_ are interpreted as
   
  _ daa $27    lda $3A    rnc $D0   xthl $E3_
 
-Values for Z-80 mnemonics.
+Values for Z-80\zmn mnemonics.
 Ambiguous mnemonics such as _ld_ and _inc_ evaluate to the 8 bit register
 operation base value.  _ex_ is arbitrarily mapped to _ex de,hl_.
 Bit and shift operations on _(IX+d)_ and _(IY+d)_
@@ -1229,6 +1317,28 @@ prevents their use in operations.
  _ory      $B6FD          xtiy     $E3FD_
   
  _otdr     $BBED_
+
+Values for Z-180\zzmn mnemonics.
+
+ _in0      $00ED_
+  
+ _mlt      $4CED_
+  
+ _otdm     $8BED_
+  
+ _otdmr    $9BED_
+  
+ _otim     $83ED_
+  
+ _otimr    $93ED_
+  
+ _out0     $01ED_
+  
+ _slp      $76ED_
+  
+ _tst      $04ED_
+  
+ _tstio    $74ED_
 
 ---
 .Exit Status
