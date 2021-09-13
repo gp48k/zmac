@@ -1060,11 +1060,11 @@ or 8 bit immediate value.
   
  _ ex    de,hl         ex    hl,de_
   
- _ ex    hl,(sp)       ex    (sp),hl
+ _ ex    hl,(sp)       ex    (sp),hl_
   
- _ ex    ix,(sp)       ex    (sp),ix
+ _ ex    ix,(sp)       ex    (sp),ix_
   
- _ ex    iy,(sp)       ex    (sp),iy
+ _ ex    iy,(sp)       ex    (sp),iy_
   
  _ in    a,(n)         in    a,n_
   

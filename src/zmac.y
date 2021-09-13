@@ -1508,6 +1508,37 @@ void list_optarg(int optarg, int seg, int type)
 		fputc(type, fout);
 }
 
+void bds_perm(int dollar, int addr, int len)
+{
+	while (len > 0) {
+		int blklen;
+		int usage = memflag[addr & 0xffff] & (MEM_INST | MEM_DATA);
+
+		for (blklen = 0; blklen < len; blklen++) {
+			int u = memflag[(addr + blklen) & 0xffff] & (MEM_INST | MEM_DATA);
+			if (u != usage)
+				break;
+		}
+
+		int bu = 0;
+		if (usage & MEM_INST) bu |= 1;
+		if (usage & MEM_DATA) bu |= 2;
+
+		while (blklen > 0) {
+			int size = blklen;
+			if (size > 255) size = 255;
+			fprintf(fbds, "%04x %04x u %02x %02x\n",
+				dollar, addr & 0xffff, size, bu);
+
+			addr += size;
+			dollar += size;
+			len -= size;
+
+			blklen -= size;
+		}
+	}
+}
+
 void list_out(int optarg, char *line_str, char type)
 {
 	unsigned char *	p;
@@ -1562,33 +1593,13 @@ void list_out(int optarg, char *line_str, char type)
 		}
 
 		if (fbds) {
-			int addr;
 			if (emitptr > emitbuf) {
 				fprintf(fbds, "%04x %04x d ", dollarsign, emit_addr);
 				for (p = emitbuf; p < emitptr; p++)
 					fprintf(fbds, "%02x", *p & 0xff);
 				fprintf(fbds, "\n");
-				addr = emit_addr;
-				for (p = emitbuf; p < emitptr; p++) {
-					unsigned char *q;
-					int len = 0, off;
-					int usage = memflag[addr & 0xffff] & (MEM_INST | MEM_DATA);
-					for (q = p; q < emitptr; q++, len++) {
-						int u = memflag[(addr + len) & 0xffff] & (MEM_INST | MEM_DATA);
-						if (u != usage)
-							break;
-					}
 
-					off = q - emitbuf;
-					int bu = 0;
-					if (usage & MEM_INST) bu |= 1;
-					if (usage & MEM_DATA) bu |= 2;
-					fprintf(fbds, "%04x %04x u %02x %02x\n",
-						dollarsign + off, addr, len, bu);
-
-					addr = (addr + len) & 0xffff;
-					p = q - 1;
-				}
+				bds_perm(dollarsign, emit_addr, emitptr - emitbuf);
 			}
 			fprintf(fbds, "%04x %04x s %s", dollarsign, emit_addr, line_str);
 		}
@@ -8265,6 +8276,7 @@ void incbin(char *filename)
 	int start = dollarsign;
 	int last = start;
 	int bds_count;
+	int bds_dollar = dollarsign, bds_addr = emit_addr, bds_len;
 
 	if (!fp) {
 		char ebuf[1024];
@@ -8279,11 +8291,13 @@ void incbin(char *filename)
 
 	// Avoid emit() because it has a small buffer and it'll spam the listing.
 	bds_count = 0;
+	bds_len = 0;
 	while ((ch = fgetc(fp)) != EOF) {
 		if (outpass && fbds) {
 			if (bds_count == 0)
 				fprintf(fbds, "%04x %04x d ", dollarsign, emit_addr);
 			fprintf(fbds, "%02x", ch);
+			bds_len++;
 			bds_count++;
 			if (bds_count == 16) {
 				fprintf(fbds, "\n");
@@ -8303,8 +8317,12 @@ void incbin(char *filename)
 		putrel(ch);
 		putout(ch);
 	}
-	if (outpass && fbds && bds_count)
-		fprintf(fbds, "\n");
+	if (outpass && fbds) {
+		if (bds_count)
+			fprintf(fbds, "\n");
+
+		bds_perm(bds_dollar, bds_addr, bds_len);
+	}
 
 	fclose(fp);
 
@@ -8338,6 +8356,7 @@ void dc(int count, int value)
 {
 	int start = dollarsign;
 	int bds_count;
+	int bds_addr = emit_addr, bds_len = count;
 
 	addtoline('\0');
 	if (outpass && fbds)
@@ -8359,6 +8378,7 @@ void dc(int count, int value)
 
 		if (segment == SEG_CODE)
 			setmem(emit_addr, value, MEM_DATA);
+
 		emit_addr++;
 		emit_addr &= 0xffff;
 		dollarsign++;
@@ -8368,8 +8388,13 @@ void dc(int count, int value)
 		putrel(value);
 		putout(value);
 	}
-	if (outpass && fbds && bds_count)
-		fprintf(fbds, "\n");
+
+	if (outpass && fbds) {
+		if (bds_count)
+			fprintf(fbds, "\n");
+
+		bds_perm(start, bds_addr, bds_len);
+	}
 
 	// Do our own list() work as we emit bytes manually.
 

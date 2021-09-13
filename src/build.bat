@@ -1,3 +1,4 @@
+@setlocal
 @echo off
 @rem Generate doc.inl
 gcc -Wall -o doc.exe -DMK_DOC doc.c
