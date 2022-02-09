@@ -1,6 +1,6 @@
 %{
 // GWP - keep track of version via hand-maintained date stamp.
-#define VERSION "4apr2021"
+#define VERSION "9feb2022"
 
 /*
  *  zmac -- macro cross-assembler for the Zilog Z80 microprocessor
@@ -222,6 +222,8 @@
  *		appear contiguously.  --fcal option and Z-180 instructions.
  *
  * gwp 10-4-21	Put code and data indications in .bds output.
+ *
+ * gwp 9-2-22	Fix --z180 and improve usage message on unknown -- flags.
  */
 
 #if defined(__GNUC__)
@@ -6421,6 +6423,7 @@ int main(int argc, char *argv[])
 		if (strcmp(argv[i], "--z180") == 0) {
 			/* Equivalent to .z180 */
 			default_z80 = 2;
+			continue;
 		}
 
 		if (strcmp(argv[i], "--od") == 0) {
@@ -6442,6 +6445,9 @@ int main(int argc, char *argv[])
 			suffix_list(argv[i = getoptarg(argc, argv, i)], 1);
 			continue;
 		}
+
+		if (argv[i][0] == '-' && argv[i][1] == '-')
+			usage("Unknown option: %s", argv[i]);
 
 		if (argv[i][0] == '-' && argv[i][1] == 'P' &&
 			argv[i][2] >= '0' && argv[i][2] <= '9')
