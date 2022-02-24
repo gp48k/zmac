@@ -1,5 +1,5 @@
 //
-// zi80dis.cpp - extract disassembly and timing information for Z-80 and 8080 instructions
+// zi80dis.c - extract disassembly and timing information for Z-80 and 8080 instructions
 //
 // Standard Z-80 mnemonics are used with extensions for undocumented opcodes.
 //		sl1				cb28 - cb2f
@@ -29,13 +29,13 @@ static char undefined[] = "undefined";
 static char ednop[] = "ednop";
 static char pfix[] = "pfix";
 
-struct Opcode {
+typedef struct Opcode {
 	const char	*name;
 	int			args;
 	int			tstates;
 	int			tstates8080;
 	int			tstates180;
-};
+} Opcode;
 
 // Opcode args if name == 0
 // 0 - CB
@@ -1229,10 +1229,10 @@ static Opcode z_minor[3][256] = {
   }
 };
 
-struct OpcodePatch {
+typedef struct OpcodePatch {
 	int		op;
 	Opcode	code;
-};
+} OpcodePatch;
 
 // TODO: reminder: where do these come from?
 // Answer: they're 8085 undocumented instructions: http://electronicerror.blogspot.ca/2007/08/undocumented-flags-and-instructions.html
@@ -1296,58 +1296,60 @@ static OpcodePatch change180[] = {
 	{ 0x9b, { "otdmr",			BT | MR | OT,	0, 0, VT(14, 16) } },
 };
 
-Zi80dis::Zi80dis()
+void Zi80dis_init(struct Zi80dis* this)
 {
-	m_processor = procZ80;
-	m_assemblerable = true;
-	m_dollarhex = false;
-	m_undoc = false;
+	memset(this, 0, sizeof (*this));
+	this->m_processor = procZ80;
+	this->m_assemblerable = true;
+	this->m_dollarhex = false;
+	this->m_undoc = false;
 }
 
-void Zi80dis::SetProcessor(enum Zi80dis::Processor proc)
+void Zi80dis_SetProcessor(struct Zi80dis* this, enum Processor proc)
 {
-	m_processor = proc;
+	this->m_processor = proc;
 }
 
-void Zi80dis::SetAssemblerable(bool assemblerable)
+void Zi80dis_SetAssemblerable(struct Zi80dis* this, bool assemblerable)
 {
-	m_assemblerable = assemblerable;
+	this->m_assemblerable = assemblerable;
 }
 
-void Zi80dis::SetDollarHex(bool dollarhex)
+void Zi80dis_SetDollarHex(struct Zi80dis* this, bool dollarhex)
 {
-	m_dollarhex = dollarhex;
-	if (m_dollarhex)
-		m_assemblerable = false;
+	this->m_dollarhex = dollarhex;
+	if (this->m_dollarhex)
+		this->m_assemblerable = false;
 }
 
-void Zi80dis::SetUndocumented(bool undoc)
+void Zi80dis_SetUndocumented(struct Zi80dis* this, bool undoc)
 {
-	m_undoc = undoc;
+	this->m_undoc = undoc;
 }
 
-bool Zi80dis::IsUndefined()
+bool Zi80dis_IsUndefined(struct Zi80dis* this)
 {
-	return m_minT == 0;
+	return this->m_minT == 0;
 }
 
 #define SIGN_EXTEND(byte)	(((byte) & 0x80) ? -(((byte) ^ 255) + 1) : (byte))
 
-void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInstruction)
+void Zi80dis_Disassemble(struct Zi80dis* this, const unsigned char *mem, int pc, bool memPointsToInstruction)
 {
-	m_minT = 0;
-	m_maxT = 0;
-	m_ocf = 0;
-	m_min8080T = 0;
-	m_max8080T = 0;
-	m_min180T = 0;
-	m_max180T = 0;
-	m_length = 0;
+	this->m_minT = 0;
+	this->m_maxT = 0;
+	this->m_ocf = 0;
+	this->m_min8080T = 0;
+	this->m_max8080T = 0;
+	this->m_min180T = 0;
+	this->m_max180T = 0;
+	this->m_length = 0;
 
+// FIXME: should this be == ?
 #define FETCH_TO(var) var = memPointsToInstruction	\
-		? mem[m_length] 							\
-		: mem[(pc + m_length) & 0xffff];			\
-	m_length++
+		? mem[this->m_length] 							\
+		: mem[(pc + this->m_length) & 0xffff];			\
+	this->m_length++
 
 	int FETCH_TO(op);
 	int op0 = op;
@@ -1356,18 +1358,18 @@ void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInst
 
 	if (code->tstates8080 > 256)
 	{
-		m_min8080T += code->tstates8080 >> 8;
-		m_max8080T += code->tstates8080 & 0xff;
+		this->m_min8080T += code->tstates8080 >> 8;
+		this->m_max8080T += code->tstates8080 & 0xff;
 	}
 	else
 	{
-		m_min8080T += code->tstates8080;
-		m_max8080T = m_min8080T;
+		this->m_min8080T += code->tstates8080;
+		this->m_max8080T = this->m_min8080T;
 	}
 
-	m_ocf++;
+	this->m_ocf++;
 
-	if (m_processor == proc8080)
+	if (this->m_processor == proc8080)
 	{
 #if 0
 		// Check if there are replacements for 8080 instructions.
@@ -1385,14 +1387,14 @@ void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInst
 	}
 	else if (!z_major[op].name)
 	{
-		if (op == 0xED && m_processor == procZ180)
+		if (op == 0xED && this->m_processor == procZ180)
 		{
 			FETCH_TO(op);
 
 			code = &z_minor[2][op];
 
 			// Check if there are replacements for Z-180 instructions.
-			for (int i = 0; i < int(sizeof(change180) / sizeof(change180[0])); i++)
+			for (int i = 0; i < (int)(sizeof(change180) / sizeof(change180[0])); i++)
 			{
 				if (op == change180[i].op)
 				{
@@ -1409,12 +1411,12 @@ void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInst
 			// Check DD/FD prefix specially for no effect.
 			if (args == 1 && (z_minor[args][op].args & NOEFF))
 			{
-				m_length--;
+				this->m_length--;
 				code = &z_minor[args][op];
 			}
 			else
 			{
-				m_ocf++; // book says at most 2 op code fetches even for DDCB (TODO: really?)
+				this->m_ocf++; // book says at most 2 op code fetches even for DDCB (TODO: really?)
 				while (!z_minor[args][op].name)
 				{
 					args = z_minor[args][op].args;
@@ -1425,37 +1427,37 @@ void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInst
 		}
 	}
 
-	m_neverNext = (code->args & UNBR) != 0;
-	m_stableMask = (1 << m_length) - 1;	// opcodes are stable
-	m_attrMask = 0;
-	m_numArg = 0;
+	this->m_neverNext = (code->args & UNBR) != 0;
+	this->m_stableMask = (1 << this->m_length) - 1;	// opcodes are stable
+	this->m_attrMask = 0;
+	this->m_numArg = 0;
 
-	if (!m_undoc && (code->args & UNDOC))
+	if (!this->m_undoc && (code->args & UNDOC))
 	{
-		strcpy(m_format, m_processor == procZ180 ? "illegal" : undefined);
+		strcpy(this->m_format, this->m_processor == procZ180 ? "illegal" : undefined);
 		return;
 	}
 
-	if (code->args & MR) m_attrMask |= attrRead;
-	if (code->args & MW) m_attrMask |= attrWrite;
-	if (code->args & BT) m_attrMask |= attrByte;
-	if (code->args & WD) m_attrMask |= attrWord;
-	if (code->args & IN) m_attrMask |= attrIn;
-	if (code->args & OT) m_attrMask |= attrOut;
+	if (code->args & MR) this->m_attrMask |= attrRead;
+	if (code->args & MW) this->m_attrMask |= attrWrite;
+	if (code->args & BT) this->m_attrMask |= attrByte;
+	if (code->args & WD) this->m_attrMask |= attrWord;
+	if (code->args & IN) this->m_attrMask |= attrIn;
+	if (code->args & OT) this->m_attrMask |= attrOut;
 	if (code->name[0] == 'j' && code->name[1] == 'p')
 	{
-		m_attrMask |= code->name[3] == '(' ? attrJumpReg : attrJump;
+		this->m_attrMask |= code->name[3] == '(' ? attrJumpReg : attrJump;
 	}
 
 	switch (code->args & ~FLGMSK)
 	{
 	case 3:	/* DD CB or FD CB instructions */
-		m_stableMask &= ~4;	// Offset at byte 3 is not stable.
-		m_stableMask |= 8;	// Opcode at byte 4 is stable.
-		m_numArg = 1;
+		this->m_stableMask &= ~4;	// Offset at byte 3 is not stable.
+		this->m_stableMask |= 8;	// Opcode at byte 4 is stable.
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = SIGN_EXTEND(op);
-		m_argType[0] = Zi80dis::argIndex;
+		this->m_arg[0] = SIGN_EXTEND(op);
+		this->m_argType[0] = argIndex;
 		FETCH_TO(op);
 		code = &z_minor[0][op];
 		
@@ -1463,9 +1465,9 @@ void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInst
 			// Find (hl) in normal instruction description.
 			const char *left = strchr(code->name, '(');
 			if (!left) {
-				if (!m_undoc || m_processor == procZ180)
+				if (!this->m_undoc || this->m_processor == procZ180)
 				{
-					strcpy(m_format, undefined); // No (hl), don't want undocumented instructions.
+					strcpy(this->m_format, undefined); // No (hl), don't want undocumented instructions.
 				}
 				else
 				{
@@ -1475,210 +1477,211 @@ void Zi80dis::Disassemble(const unsigned char *mem, int pc, bool memPointsToInst
 
 			if (left)
 			{
-					sprintf(m_format, "%.*s(ix%%s)", (int)(left - code->name), code->name);
+					sprintf(this->m_format, "%.*s(ix%%s)", (int)(left - code->name), code->name);
 					if (*left != '(' && strncmp(code->name, "bit", 3) != 0)
 					{
-						strcat(m_format, ",");
-						strcat(m_format, left);
+						strcat(this->m_format, ",");
+						strcat(this->m_format, left);
 					}
-					m_minT = 8;
-					m_maxT = 8;
-					m_min180T = 6;
-					m_max180T = 6;
+					this->m_minT = 8;
+					this->m_maxT = 8;
+					this->m_min180T = 6;
+					this->m_max180T = 6;
 			}
 		}
 		break;
 	case IND:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = SIGN_EXTEND(op);
-		m_argType[0] = argIndex;
-		strcpy(m_format, code->name);
+		this->m_arg[0] = SIGN_EXTEND(op);
+		this->m_argType[0] = argIndex;
+		strcpy(this->m_format, code->name);
 		break;
 	case IND_1:
-		m_numArg = 2;
+		this->m_numArg = 2;
 		FETCH_TO(op);
-		m_arg[0] = SIGN_EXTEND(op);
-		m_argType[0] = argIndex;
+		this->m_arg[0] = SIGN_EXTEND(op);
+		this->m_argType[0] = argIndex;
 		FETCH_TO(op);
-		m_arg[1] = op;
-		m_argType[1] = argByte;
-		strcpy(m_format, code->name);
+		this->m_arg[1] = op;
+		this->m_argType[1] = argByte;
+		strcpy(this->m_format, code->name);
 		break;
 	case PORT:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = op;
-		m_argType[0] = argPort;
-		strcpy(m_format, code->name);
+		this->m_arg[0] = op;
+		this->m_argType[0] = argPort;
+		strcpy(this->m_format, code->name);
 		break;
 	case 0:
-		strcpy(m_format, code->name);
+		strcpy(this->m_format, code->name);
 		break;
 	case BC:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = op;
-		m_argType[0] = argByte;
-		strcpy(m_format, code->name);
+		this->m_arg[0] = op;
+		this->m_argType[0] = argByte;
+		strcpy(this->m_format, code->name);
 		break;
 	case WC:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = op;
+		this->m_arg[0] = op;
 		FETCH_TO(op);
-		m_arg[0] |= op << 8;
-		m_argType[0] = argWord;
-		strcpy(m_format, code->name);
+		this->m_arg[0] |= op << 8;
+		this->m_argType[0] = argWord;
+		strcpy(this->m_format, code->name);
 		break;
 	case ADDR:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = op;
+		this->m_arg[0] = op;
 		FETCH_TO(op);
-		m_arg[0] |= op << 8;
-		m_argType[0] = argAddress;
-		strcpy(m_format, code->name);
+		this->m_arg[0] |= op << 8;
+		this->m_argType[0] = argAddress;
+		strcpy(this->m_format, code->name);
 		break;
 	case CALL:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = op;
+		this->m_arg[0] = op;
 		FETCH_TO(op);
-		m_arg[0] |= op << 8;
-		m_argType[0] = argCall;
-		strcpy(m_format, code->name);
-		m_attrMask |= attrCall;
+		this->m_arg[0] |= op << 8;
+		this->m_argType[0] = argCall;
+		strcpy(this->m_format, code->name);
+		this->m_attrMask |= attrCall;
 		break;
 	case RST:
-		m_numArg = 1;
-		m_arg[0] = op0 & 0x38;
-		m_argType[0] = argRst;
-		strcpy(m_format, code->name);
-		m_attrMask |= attrRst;
+		this->m_numArg = 1;
+		this->m_arg[0] = op0 & 0x38;
+		this->m_argType[0] = argRst;
+		strcpy(this->m_format, code->name);
+		this->m_attrMask |= attrRst;
 		break;
 	case JR:
-		m_numArg = 1;
+		this->m_numArg = 1;
 		FETCH_TO(op);
-		m_arg[0] = (pc + m_length + SIGN_EXTEND(op)) & 0xffff;
-		m_argType[0] = argRelative;
-		strcpy(m_format, code->name);
-		m_attrMask |= attrBranch;
+		this->m_arg[0] = (pc + this->m_length + SIGN_EXTEND(op)) & 0xffff;
+		this->m_argType[0] = argRelative;
+		strcpy(this->m_format, code->name);
+		this->m_attrMask |= attrBranch;
 		break;
 	}
 
 	// Translate ix to iy if necessary.
 	if (op0 == 0xfd)
 	{
-		for (int i = 0; m_format[i]; i++)
+		for (int i = 0; this->m_format[i]; i++)
 		{
-			if (m_format[i] == 'i' && m_format[i + 1] == 'x')
+			if (this->m_format[i] == 'i' && this->m_format[i + 1] == 'x')
 			{
-				m_format[i + 1] = 'y';
+				this->m_format[i + 1] = 'y';
 			}
 		}
 	}
 
 	if (code->tstates > 256)
 	{
-		m_minT += code->tstates >> 8;
-		m_maxT += code->tstates & 0xff;
+		this->m_minT += code->tstates >> 8;
+		this->m_maxT += code->tstates & 0xff;
 	}
 	else
 	{
-		m_minT += code->tstates;
-		m_maxT = m_minT;
+		this->m_minT += code->tstates;
+		this->m_maxT = this->m_minT;
 	}
 
 	if (code->tstates180 > 256)
 	{
-		m_min180T += code->tstates180 >> 8;
-		m_max180T += code->tstates180 & 0xff;
+		this->m_min180T += code->tstates180 >> 8;
+		this->m_max180T += code->tstates180 & 0xff;
 	}
 	else
 	{
-		m_min180T += code->tstates180;
-		m_max180T = m_min180T;
+		this->m_min180T += code->tstates180;
+		this->m_max180T = this->m_min180T;
 	}
 }
 
-void Zi80dis::Format(char *output)
+void Zi80dis_Format(struct Zi80dis* this, char *output)
 {
 	char arg[2][16];
 
-	for (int i = 0; i < m_numArg; i++)
+	for (int i = 0; i < this->m_numArg; i++)
 	{
-		switch (m_argType[i])
+		switch (this->m_argType[i])
 		{
 		case argWord:
 		case argAddress:
 		case argRelative:
 		case argCall:
 		case argRst:
-			if (m_assemblerable)
+			if (this->m_assemblerable)
 			{
-				sprintf(arg[i], "0%04xh", m_arg[i]);
+				sprintf(arg[i], "0%04xh", this->m_arg[i]);
 			}
-			else if (m_dollarhex)
+			else if (this->m_dollarhex)
 			{
-				sprintf(arg[i], "$%04x", m_arg[i]);
+				sprintf(arg[i], "$%04x", this->m_arg[i]);
 			}
 			else
 			{
-				sprintf(arg[i], "%04xh", m_arg[i]);
+				sprintf(arg[i], "%04xh", this->m_arg[i]);
 			}
 			break;
 
 		case argByte:
 		case argPort:
-			if (m_assemblerable)
+			if (this->m_assemblerable)
 			{
-				sprintf(arg[i], "0%02xh", m_arg[i]);
+				sprintf(arg[i], "0%02xh", this->m_arg[i]);
 			}
-			else if (m_dollarhex)
+			else if (this->m_dollarhex)
 			{
-				sprintf(arg[i], "$%02x", m_arg[i]);
+				sprintf(arg[i], "$%02x", this->m_arg[i]);
 			}
 			else
 			{
-				sprintf(arg[i], "%02xh", m_arg[i]);
+				sprintf(arg[i], "%02xh", this->m_arg[i]);
 			}
 			break;
 
 		case argIndex:
-			sprintf(arg[i], m_dollarhex ? "%c$%02x" : "%c%02xh",
-				(m_arg[i] & 0x80) ? '-' : '+',
-				(m_arg[i] & 0x80) ? ((m_arg[i] & 255) ^ 255) + 1 : m_arg[i]);
+			sprintf(arg[i], this->m_dollarhex ? "%c$%02x" : "%c%02xh",
+				(this->m_arg[i] & 0x80) ? '-' : '+',
+				(this->m_arg[i] & 0x80) ? ((this->m_arg[i] & 255) ^ 255) + 1 : this->m_arg[i]);
 			break;
 		}
 	}
 
-	sprintf(output, m_format, arg[0], arg[1]);
+	sprintf(output, this->m_format, arg[0], arg[1]);
 }
 
-extern "C" int zi_tstates(const unsigned char *inst, int proc,
+int zi_tstates(const unsigned char *inst, int proc,
 	int *low, int *high, int *ocf, char *disasm)
 {
-	Zi80dis dis;
+	struct Zi80dis dis;
+	Zi80dis_init(&dis);
 
-	dis.SetProcessor((Zi80dis::Processor)proc);
-	dis.SetUndocumented(true);
-	dis.SetDollarHex(true);
-	dis.Disassemble(inst, 0, true);
+	Zi80dis_SetProcessor(&dis, proc);
+	Zi80dis_SetUndocumented(&dis, true);
+	Zi80dis_SetDollarHex(&dis, true);
+	Zi80dis_Disassemble(&dis, inst, 0, true);
 
 	if (ocf) *ocf = dis.m_ocf;
 
 	// proc corresponds to  Zi80dis::Processor
 	switch (proc) {
-	case Zi80dis::procZ80:
+	case procZ80:
 		if (low) *low = dis.m_minT;
 		if (high) *high = dis.m_maxT;
 		break;
-	case Zi80dis::proc8080:
+	case proc8080:
 		if (low) *low = dis.m_min8080T;
 		if (high) *high = dis.m_max8080T;
 		break;
-	case Zi80dis::procZ180:
+	case procZ180:
 		if (low) *low = dis.m_min180T;
 		if (high) *high = dis.m_max180T;
 		break;
@@ -1687,7 +1690,7 @@ extern "C" int zi_tstates(const unsigned char *inst, int proc,
 	}
 
 	if (disasm)
-		dis.Format(disasm);
+		Zi80dis_Format(&dis, disasm);
 
 	return dis.m_length;
 }
