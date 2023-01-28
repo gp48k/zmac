@@ -1,7 +1,7 @@
 # On Mac OSX gcc is required as clang complains bitterly about the old style
 # C delarations used.
 
-targets = zmac doc
+targets = zmac doc 
 toclean = $(targets)
 
 zmac_deps = doc.inl
@@ -19,6 +19,12 @@ LDFLAGS = -Wall -O2
 # LCU: Wed Jan 25 08:22:19 CET 2023
 # Yes, it is called YFLAGS
 
+.PHONY: all clean
+
+all: $(targets)
+clean:
+	rm -f $(toclean)
+
 zmac: $(zmac_deps) $(zmac_objs)
 	$(CXX) $(LDFLAGS) $($@_ldfl) -o $@ $($@_objs) $($@_libs)
 
@@ -27,8 +33,5 @@ doc: $(doc_deps) $(doc_objs)
 
 doc.inl: doc doc.txt
 	./doc >/dev/null
-
-clean:
-	rm -f $(toclean)
 
 zmac.o: y.tab.h
