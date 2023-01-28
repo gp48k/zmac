@@ -1078,20 +1078,20 @@ is the same as
 .Cm / ,
 .Cm % mod
 .It
-.Cm + , 
+.Cm + ,
 .Cm \-
 .It
 .Cm <<
-.Cm shl , 
+.Cm shl ,
 .Cm >> shr
 .It
 .Cm <
-.Cm lt , 
-.Cm > gt , 
-.Cm <= le , 
+.Cm lt ,
+.Cm > gt ,
+.Cm <= le ,
 .Cm >= ge
 .It
-.Cm == = eq , 
+.Cm == = eq ,
 .Cm != <> ne
 .It
 .Cm & and
@@ -1111,20 +1111,20 @@ is the same as
 .Cod CB "? :
 (ternary choice operator)
 .El
-Expressions\emrasord change significantly in 
+Expressions\emrasord change significantly in
 .Fl \-mras
 mode:
 Evaluation is strictly left to right.
-Except for 
-.Cm and , 
+Except for
+.Cm and ,
 .Cm or ,
 .Cm xor
-and 
+and
 .Cm = .
-This doesn't break compatibility as original MRAS source code only allows 
-.Cm .and. , 
+This doesn't break compatibility as original MRAS source code only allows
+.Cm .and. ,
 .Cm .or.
-and 
+and
 .Cm .xor.
 but the precedence difference may surprise if code is added.
 .Pp
@@ -1135,24 +1135,24 @@ is bitwise OR instead of logical not.
 is left shift (or right shift when shift amount is negative)
 .Pp
 MRAS operators (\c
-.Cm .and. 
-.Cm .eq. 
-.Cm .ge. 
-.Cm .gt. 
-.Cm .high. 
-.Cm .le. 
+.Cm .and.
+.Cm .eq.
+.Cm .ge.
+.Cm .gt.
+.Cm .high.
+.Cm .le.
 .Cm .low.
-.Cm .lt. 
-.Cm .mod. 
-.Cm .ne. 
-.Cm .not. 
-.Cm .or. 
-.Cm .shl. 
-.Cm .shr. 
+.Cm .lt.
+.Cm .mod.
+.Cm .ne.
+.Cm .not.
+.Cm .or.
+.Cm .shl.
+.Cm .shr.
 .Cod CB .xor. )
-are recognized even if apparently in identifers.  (e.g., 
+are recognized even if apparently in identifers.  (e.g.,
 .Cm a.or.b
-is seen as 
+is seen as
 .Cod CB "a\ .or.\ b" )
 .Pp
 Logical operators return
@@ -1172,49 +1172,49 @@ Square brackets can be used where parentheses would
 conflict with Z-80 mnemonic syntax, but this is not necessary in any
 practical case.
 .Pp
-The 
+The
 .Cod CB ?
 may need spaces around it to distinguish it from a label that
-has 
+has
 .Cod CB ?
 in it.
 .Pp
 The unary operators not familiar to C programmers:
 .Bl -tag
 .It Cm low Ar expr
-Returns low 8 bits of 
+Returns low 8 bits of
 .Ar expr
 .It Cm high Ar expr
-Returns high 8 bits of 
+Returns high 8 bits of
 .Ar expr
 .It Cm t Ar expr
-Current count of T-states up to memory location 
+Current count of T-states up to memory location
 .Ar expr
 .It Cm tilo Ar expr
-Low count of T-states used by instruction at memory location 
+Low count of T-states used by instruction at memory location
 .Ar expr
 .It Cm tihi Ar expr
-High count of T-states used by instruction at memory location 
+High count of T-states used by instruction at memory location
 .Ar expr
 .It Cm ocf Ar expr
-Current count of opcode fetches up to memory location 
+Current count of opcode fetches up to memory location
 .Ar expr
 .El
 .Sh MACROS
 The following defines a macro named m with zero or more formal parameters
-.Cod CB p1 , 
-.Cod CB p2 , 
-.Cod CB ... , 
+.Cod CB p1 ,
+.Cod CB p2 ,
+.Cod CB ... ,
 .Cod CB p \c
 .Cod I <n> ,
-zero or more local symbols 
-.Cod CB ?s1 , 
+zero or more local symbols
+.Cod CB ?s1 ,
 .Cod CB ?s2 ,
-.Cod CB ... , 
+.Cod CB ... ,
 .Cod CB ?s \c
 .Cod I <m> ,
-and body 
-.Cod CB b1 , 
+and body
+.Cod CB b1 ,
 .Cod CB b2 ,
 .Cod CB ... .
 .Bd -literal
@@ -1230,15 +1230,15 @@ The macro is called by writing:
 .Ed
 .Pp
 A macro call expands to the text of the macro's body, with each
-occurrence of a formal parameter 
+occurrence of a formal parameter
 .Cod CB pk
 replaced by the corresponding
-value 
+value
 .Cod CB vk ,
-and with each local symbol 
+and with each local symbol
 .Cod CB ?sk
 replaced by a new, unique symbol invented for this call.
-Invented symbols begin with 
+Invented symbols begin with
 .Cod CB ? ,
 so you should avoid using such symbols elsewhere in your program.
 .Pp
@@ -1260,40 +1260,40 @@ list other labels that will be treated locally:
 Each time the macro is expanded the local labels are replaced with unique
 names thus avoiding multiple definition problems.
 .Pp
-For compatability with MRAS, macro arguments may be preceeded by 
+For compatability with MRAS, macro arguments may be preceeded by
 .Cod CB #
 in their definition and use.
 .Pp
-Any 
+Any
 .Cod CB `
 (backquote) in a macro is ignored thus allowing a macro to
 construct identifiers.
 For example:
-.Bd -literal 
+.Bd -literal
 move macro dir
      ld`dir`r
      endm
 .Ed
-Invoking 
+Invoking
 .Cm move i
-will construct a 
+will construct a
 .Cm ldir
 block move instruction.
 .Pp
-For compatibility, 
+For compatibility,
 .Cm &
 can also be used as in MAC to concatenate macro parameters.
-This conflicts with 
+This conflicts with
 .Cod CB zmac 's
-bitwise and operator but you can use the 
+bitwise and operator but you can use the
 .Cm and
 synonym in macros to avoid the conflict.
 .Pp
-In 
+In
 .Fl \-mras
 mode arguments will be expanded even if they are inside other
 identifiers.
-The 
+The
 .Cm move
 could be written:
 .Bd -literal
@@ -1305,16 +1305,16 @@ Macro definitions can contain macro definitions which will be defined
 when the outer macro is first exapnded.
 Macros can be redefined as well.
 .Pp
-Macro expansion continues to the 
+Macro expansion continues to the
 .Cm endm
-directive but can be stopped prematurely by the 
+directive but can be stopped prematurely by the
 .Cm exitm
 directive.
-Typically the 
+Typically the
 .Cm exitm
 is inside some conditional part of the macro.
 .Pp
-Parameters passed to a macro can be empty and are tested with the 
+Parameters passed to a macro can be empty and are tested with the
 .Cm nul
 operator:
 .Bd -literal
@@ -1322,11 +1322,11 @@ operator:
     ...
     endif
 .Ed
-Macro parameters can contain commas if grouped inside 
+Macro parameters can contain commas if grouped inside
 .Cm <
-and 
+and
 .Cm > .
-Or a comma can be escaped with 
+Or a comma can be escaped with
 .Cm ^
 which can also escape spaces and other special characters.
 It is also be put in front of a macro parameter name inside the expansion
@@ -1334,16 +1334,16 @@ to suppress the replacement by its value.
 .Pp
 Expansion of parameters in a macro body is purely textual.
 This can lead to surprises in complex situations.
-The 
+The
 .Cod CB %
 character can be used to force a macro parameter to be replaced with the
 evaluation of it as an expression.
 .Sh INLINE MACROS
 .Nm
-supports the commonly available 
-.Cm rept , 
+supports the commonly available
+.Cm rept ,
 .Cm irp
-and 
+and
 .Cm irpc
 inline macros
 .Pp
@@ -1361,10 +1361,10 @@ instructions:
 runs through a string of letters assigning them to a variable and
 expanding the macro block each time.
 For example, this will load 7 into
-registers 
-.Cm b , 
+registers
+.Cm b ,
 .Cm d
-and 
+and
 .Cm h :
 .Bd -literal
     irpc reg,bdh
@@ -1374,22 +1374,22 @@ and
 .Cm irp
 runs through a list of parameters assiging each entry to a variable
 and expanding the macro block.
-Here we load 
-.Cm bc_, 
+Here we load
+.Cm bc_,
 .Cm de
-and 
+and
 .Cm hl
 with 0:
 .Bd -literal
     irp rpair,<bc,de,hl>
     ld &rpair,0
-    endm    
+    endm
 .Ed
 Lists can be nested.
-Here's an example of and 
+Here's an example of and
 .Cm irp
 passing lists on down
-to another 
+to another
 .Cm irp :
 .Bd -literal
     irp listlist,<<one,two,three>,<four,five,six>>_
@@ -1412,13 +1412,13 @@ Expression order of evaluation may be different.
 uses C semantics more order of evaluation but assemblers often used
 simple left to right ordering.
 .Nm
-will evaluate 
+will evaluate
 .Cod CB "2+2*3
-as 
+as
 .Cm 8
-where other assemblers will yield 
+where other assemblers will yield
 .Cm 12 .
-However, in 
+However, in
 .Fl \-mras
 mode expressions are evaluated strictly left-to-right for compatibility.
 .Pp
@@ -1438,8 +1438,8 @@ is supposed to do.
 .Pp
 Compare against original output.
 The very safest thing to do when porting assembly code is to compare the
-binary output of 
-.Nm 
+binary output of
+.Nm
 against that produced by the original assembler.
 This way you can ensure everything has been interpreted correctly.
 Only once that has been achieved should you modify the code.
@@ -1454,9 +1454,9 @@ containing the error.
 .It B
 Balance error.
 .Pp
-A string is missing an closing quote or an 
+A string is missing an closing quote or an
 .Cm if
-is missing an 
+is missing an
 .Cm endif
 .It E
 Expression error
@@ -1494,39 +1494,39 @@ Often this means using less than
 .Cm -128
 or greater then
 .Cm 255
-in a 
+in a
 .Cm defb
 or less than
 .Cm -32768
 or greater than
 .Cm 65535
-in a 
+in a
 .Cm defw .
 Or similar invalid values used Z-80/8080 opcodes requiring an 8 or 16 bit
-value (and other restrictions like 
+value (and other restrictions like
 .Cm 0
 to
 .Cm 7
-for 
+for
 .Cod CB BIT ).
 Also if a relative jump is out of range or if a negative value is given
-in 
+in
 .Cm defs
-or 
+or
 .cm dc .
 .It O
 Phase/Dephase error
 .Pp
 .Cm phase
-was used within another 
+was used within another
 .Cm phase
-or 
+or
 .Cm dephase
-without 
+without
 .Cm phase .
-Or if 
+Or if
 .Cm org
-is used within 
+is used within
 .Cm phase .
 .It A
 Assertion failure error
@@ -1537,9 +1537,9 @@ Use JR error
 .Pp
 An absolute jump instruction was used where relative jump was in range
 of the destination address.
-Only generated if 
+Only generated if
 .Fl j
-or 
+or
 .Cm jrpromote
 is in effect.
 .It R
@@ -1549,42 +1549,42 @@ An expression was used that must be generated at link time but cannot
 be handled by the
 .Cod CW .rel '' ``
 format.
-For instance, an 
+For instance, an
 .Cm org
 to a symbol in the data segment when in the code segment.
 Or a relative jump to a different segment.
 The
 .Cod CW .rel '' ``
-format can evaluate expressions at link time using the 
-.Cm high , 
-.Cm low , 
-.Cm not , 
-.Cm \- , 
-.Cm + , 
-.Cm * , 
+format can evaluate expressions at link time using the
+.Cm high ,
+.Cm low ,
+.Cm not ,
+.Cm \- ,
+.Cm + ,
+.Cm * ,
 .Cm /
-and 
+and
 .Cm %
 operators.
 .Nm
-is clever enough to use 
+is clever enough to use
 .Cm high
-or 
+or
 .Cm low
-in place of 
+in place of
 .Cm "& $ff00
 and
 .Cm "& 255" .
-But it won't replace a 
+But it won't replace a
 .Cm shl
 with a multiply.
 .It G
 Register usage error
 .Pp
 A invalid register was given to an instruction.
-For example, 
+For example,
 .Cm "LD B,(DE)
-or 
+or
 .Cm "ADD HL,IX" .
 .It Z
 Invalid instruction.
@@ -1592,7 +1592,7 @@ Invalid instruction.
 The instruction is not valid for the current architecture.
 For example, a Z-80@zmn instruction in 8080 mode (\c
 .Cm .8080
-or 
+or
 .Cm -8
 mode is in effect).
 Or a Z-180@zzmn instruction in 8080 or Z-80 mode.
@@ -1603,11 +1603,11 @@ is always OK.
 .Cm $hex
 constant interpreted as symbol warning
 .Pp
-A symbol such as 
+A symbol such as
 .Cm $FCB
 has been defined even though it could appear to be a hexadecimal constant.
 .Nm
-will treat 
+will treat
 .Cm $FCB
 as symbol for the entire assembly which could be rather surprising if that
 were not the intent.
@@ -1615,7 +1615,7 @@ were not the intent.
 Not implemented warning
 .Pp
 For statements that have been added as parse rules but have no effect.
-The only current example is 
+The only current example is
 .Cm subttl
 which sets the sub title of a listing
 in certain assemblers.
@@ -1644,11 +1644,11 @@ are forbidden.
 .Pp
 If
 .Cod CW ".rel" '' ``
-is selected for output either by 
+is selected for output either by
 .Fl \-relopt
 or with
 .Fl \-oo Ar rel
-or 
+or
 .Fl o Ar file.rel
 then all other output formats are suppressed (except the
 .Cod CW ".lst" '' ``
@@ -1719,37 +1719,37 @@ but in ready-to-play audio format.
 MAME debug script (e.g., mame trs80 -d -debugscript zout/prog.mds)
 .El
 .Sh MISCELLANEOUS
-In the symbol table listing, the 
+In the symbol table listing, the
 .Cm =
 separator is given for those symbols
-defined by 
+defined by
 .Cm equ
-or 
+or
 .Cm defl .
-The 
+The
 .Cm /
 separator is shown for common blocks.
 Aliases are distinguished by their double-quoted strings.
 .Pp
-The 
+The
 .Cod CW .rel '' ``
 file format can store symbol names of up to 7 characters in length.
 However, MACRO-80 truncates symbols to 6 characters so that it has one
 character in reserve for extending linking operations such as subtracting
 two externals from each other.
-To be compatible (and sensible), 
+To be compatible (and sensible),
 .Fl \-rel
 truncates externals to 6 characters.
-For MRAS compatibility, 
+For MRAS compatibility,
 .Fl \-mras
 truncates symbols to 7 characters.
 This is not a problem for MRAS as it doesn't support extended linking.
 But necessary if you want zmac to produce
 .Cod CW .rel '' ``
-files that will link with MRAS generated 
+files that will link with MRAS generated
 .Cod CW .rel '' ``
 files.
-The 
+The
 .Fl \-rel7
 option sets symbol truncation to 7 characters so you can assemble files
 that will link with MRAS output.
@@ -1771,7 +1771,7 @@ Consider the following code fragment:
     ld    d',e'
     exx
 .Ed
-Although 
+Although
 .Nm
 does nothing but ignore the single quotes they are useful for
 indicating which register is currently active.
@@ -1784,26 +1784,26 @@ The official Zilog syntax for Z-80 has some rather arbitrary restrictions
 that
 .Nm
 ignores.
-For instance, 
+For instance,
 .Cm "add a,b
 is the only correct form but
 .Cm "sub a,b
-is invalid as 
+is invalid as
 .Cm "sub b
 must be used.
 Here is a list of
 the official and alternate forms of the various affected instructions.
 .Cod I rmni
-refers to 
-.Cm a , 
-.Cm b , 
-.Cm c , 
-.Cm d , 
-.Cm e , 
-.Cm h , 
-.Cm l , 
-.Cm (hl) , 
-.Cm (ix+d) , 
+refers to
+.Cm a ,
+.Cm b ,
+.Cm c ,
+.Cm d ,
+.Cm e ,
+.Cm h ,
+.Cm l ,
+.Cm (hl) ,
+.Cm (ix+d) ,
 .Cm (iy+d)
 or
 8 bit immediate value.
@@ -1843,7 +1843,7 @@ rst   56@rst   7
 .TE
 .bp
 .Sh MNEMONIC VALUES
-Values for 8080 mnemonics.  Note that 
+Values for 8080 mnemonics.  Note that
 .Cm jp
 are interpreted as
 .Cod I "compare immediate" '' ``
@@ -1877,22 +1877,22 @@ daa@$27@lda@$3A@rnc@$D0@xthl@$E3
 .bp
 .Pp
 Values for Z-80\zmn mnemonics.
-Ambiguous mnemonics such as 
+Ambiguous mnemonics such as
 .Cm ld
-and 
+and
 .Cm inc
 evaluate to the 8 bit register operation base value.
 .Cm ex
-is arbitrarily mapped to 
+is arbitrarily mapped to
 .Cm "ex de,hl" .
-Bit and shift operations on 
+Bit and shift operations on
 .Cm (IX+d)
-and 
+and
 .Cm (IY+d)
 evaluate to 32 bit values and the offset goes into the third byte.
-.Cm and , 
+.Cm and ,
 .Cm or
-and 
+and
 .Cm xor
 can be used in data statements but parsing ambiguity
 prevents their use in operations.
