@@ -2,6 +2,8 @@
 // GWP - keep track of version via hand-maintained date stamp.
 #define VERSION "18oct2022"
 
+#include "y.tab.h"
+
 /*
  *  zmac -- macro cross-assembler for the Zilog Z80 microprocessor
  *
