@@ -11,3 +11,4 @@ doc.inl
 make.err
 *.pdf
 *.html
+*.1.gz
