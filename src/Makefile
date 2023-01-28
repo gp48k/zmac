@@ -1,7 +1,7 @@
 # On Mac OSX gcc is required as clang complains bitterly about the old style
 # C delarations used.
 
-targets = zmac doc 
+targets = zmac doc zmac.1.pdf
 toclean = $(targets)
 
 zmac_deps = doc.inl
@@ -33,5 +33,8 @@ doc: $(doc_deps) $(doc_objs)
 
 doc.inl: doc doc.txt
 	./doc >/dev/null
+
+zmac.1.pdf: zmac.1
+	groff -t -mandoc -Tpdf $? >$@
 
 zmac.o: y.tab.h

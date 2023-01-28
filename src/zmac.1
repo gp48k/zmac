@@ -1808,13 +1808,12 @@ refers to
 or
 8 bit immediate value.
 .ds rmi \\fIrmni
-.TS H
+.TS
 tab(@),box,center;
 lB lB
 lf(CB)|lf(CB).
 Official@Accepted Variant
 _
-.TH
 add   a,\*[rmi]@add   \*[rmi]
 adc   a,\*[rmi]@adc   \*[rmi]
 sub   \*[rmi]@sub   a,\*[rmi]
@@ -1842,6 +1841,7 @@ rst   40@rst   5
 rst   48@rst   6
 rst   56@rst   7
 .TE
+.bp
 .Sh MNEMONIC VALUES
 Values for 8080 mnemonics.  Note that 
 .Cm jp
@@ -1850,10 +1850,9 @@ are interpreted as
 and
 .Cod I "jump if positive" '' ``
 in 8080 mode.
-.TS H
+.TS
 tab(@),center,box;
-rf(CB)p6 lf(CB)p6 |rf(CB)p6 lf(CB)p6 |rf(CB)p6 lf(CB)p6 |rf(CB)p6 lf(CB)p6.
-.TH
+rf(CB) lf(CB) |rf(CB) lf(CB) |rf(CB) lf(CB) |rf(CB) lf(CB).
 aci@$CE@dad@$09@ldax@$0A@rnz@$C0
 adc@$88@dcr@$05@lhld@$2A@rp@$F0
 add@$80@dcx@$0B@lxi@$01@rpe@$E8
@@ -1875,6 +1874,7 @@ cpo@$E4@jpo@$E2@rlcr@$07@xra@$A8
 cz@$CC@jz@$CA@rm@$F8@xri@$EE
 daa@$27@lda@$3A@rnc@$D0@xthl@$E3
 .TE
+.bp
 .Pp
 Values for Z-80\zmn mnemonics.
 Ambiguous mnemonics such as 
@@ -1896,101 +1896,57 @@ and
 .Cm xor
 can be used in data statements but parsing ambiguity
 prevents their use in operations.
-.TS H
+.TS
 tab(@),center,box;
-rf(CB)p5 lf(CB)p5|rf(CB)p5 lf(CB)p5.
-.TH
-adc@$88@otir@$B3ED
-adcx@$8EDD@out@$D3
-adcy@$8EFD@outd@$ABED
-add@$80@outdr@$BBED
-addx@$86DD@outi@$A3ED
-addy@$86FD@outir@$B3ED
-and@$A0@outp@$41ED
-andx@$A6DD@pcix@$E9DD
-andy@$A6FD@pciy@$E9FD
-bit@$40CB@pfix@$DD
-bitx@$4600CBDD@pfiy@$FD
-bity@$4600CBFD@pop@$C1
-call@$CD@popix@$E1DD
-ccd@$A9ED@popiy@$E1FD
-ccdr@$B9ED@push@$C5
-ccf@$3F@pushix@$E5DD
-cci@$A1ED@pushiy@$E5FD
-ccir@$B1ED@ralr@$10CB
-cmpx@$BEDD@ralx@$1600CBDD
-cmpy@$BEFD@raly@$1600CBFD
-cp@$B8@rarr@$18CB
-cpd@$A9ED@rarx@$1E00CBDD
-cpdr@$B9ED@rary@$1E00CBFD
-cpi@$A1ED@res@$80CB
-cpir@$B1ED@resx@$8600CBDD
-cpl@$2F@resy@$8600CBFD
-daa@$27@ret@$C9
-dadc@$4AED@reti@$4DED
-dadx@$9DD@retn@$45ED
-dady@$9FD@rl@$10CB
-dcrx@$35DD@rla@$17
-dcry@$35FD@rlc@$CB
-dcxix@$2BDD@rlca@$7
-dcxiy@$2BFD@rlcr@$CB
-dec@$5@rlcx@$600CBDD
-di@$F3@rlcy@$600CBFD
-djnz@$10@rld@$6FED
-dsbc@$42ED@rr@$18CB
-ei@$FB@rra@$1F
-ex@$EB@rrc@$8CB
-exaf@$8@rrca@$F
-exx@$D9@rrcr@$8CB
-halt@$76@rrcx@$E00CBDD
-im@$46ED@rrcy@$E00CBFD
-im0@$46ED@rrd@$67ED
-im1@$56ED@rst@$C7
-im2@$5EED@sbc@$98
-in@$DB@sbcd@$43ED
-inc@$4@sbcx@$9EDD
-ind@$AAED@sbcy@$9EFD
-indr@$BAED@scf@$37
-ini@$A2ED@sded@$53ED
-inir@$B2ED@set@$C0CB
-inp@$40ED@setb@$C0CB
-inrx@$34DD@setx@$C600CBDD
-inry@$34FD@sety@$C600CBFD
-inxix@$23DD@sixd@$22DD
-inxiy@$23FD@siyd@$22FD
-jp@$F2@sl1@$30CB
-jr@$18@sla@$20CB
-jrc@$38@slar@$20CB
-jrnc@$30@slax@$2600CBDD
-jrnz@$20@slay@$2600CBFD
-jrz@$28@sll@$30CB
-lbcd@$4BED@spix@$F9DD
-ld@$40@spiy@$F9FD
-ldai@$57ED@sra@$28CB
-ldar@$5FED@srar@$28CB
-ldd@$A8ED@srax@$2E00CBDD
-lddr@$B8ED@sray@$2E00CBFD
-lded@$5BED@srl@$38CB
-ldi@$A0ED@srlr@$38CB
-ldir@$B0ED@srlx@$3E00CBDD
-ldx@$46DD@srly@$3E00CBFD
-ldy@$46FD@sspd@$73ED
-lixd@$2ADD@stai@$47ED
-liyd@$2AFD@star@$4FED
-lspd@$7BED@stx@$70DD
-lxix@$21DD@sty@$70FD
-lxiy@$21FD@sub@$90
-mvix@$36DD@subx@$96DD
-mviy@$36FD@suby@$96FD
-neg@$44ED@xor@$A8
-nop@$0@xorx@$AEDD
-or@$B0@xory@$AEFD
-orx@$B6DD@xtix@$E3DD
-ory@$B6FD@xtiy@$E3FD
-otdr@$BBED
+rf(CB)p7 lf(CB)p7|rf(CB)p7 lf(CB)p7|rf(CB)p7 lf(CB)p7|rf(CB)p7 lf(CB)p7.
+adc@$88@im0@$46ED@otir@$B3ED@rrd@$67ED
+adcx@$8EDD@im1@$56ED@out@$D3@rst@$C7
+adcy@$8EFD@im2@$5EED@outd@$ABED@sbc@$98
+add@$80@in@$DB@outdr@$BBED@sbcd@$43ED
+addx@$86DD@inc@$4@outi@$A3ED@sbcx@$9EDD
+addy@$86FD@ind@$AAED@outir@$B3ED@sbcy@$9EFD
+and@$A0@indr@$BAED@outp@$41ED@scf@$37
+andx@$A6DD@ini@$A2ED@pcix@$E9DD@sded@$53ED
+andy@$A6FD@inir@$B2ED@pciy@$E9FD@set@$C0CB
+bit@$40CB@inp@$40ED@pfix@$DD@setb@$C0CB
+bitx@$4600CBDD@inrx@$34DD@pfiy@$FD@setx@$C600CBDD
+bity@$4600CBFD@inry@$34FD@pop@$C1@sety@$C600CBFD
+call@$CD@inxix@$23DD@popix@$E1DD@sixd@$22DD
+ccd@$A9ED@inxiy@$23FD@popiy@$E1FD@siyd@$22FD
+ccdr@$B9ED@jp@$F2@push@$C5@sl1@$30CB
+ccf@$3F@jr@$18@pushix@$E5DD@sla@$20CB
+cci@$A1ED@jrc@$38@pushiy@$E5FD@slar@$20CB
+ccir@$B1ED@jrnc@$30@ralr@$10CB@slax@$2600CBDD
+cmpx@$BEDD@jrnz@$20@ralx@$1600CBDD@slay@$2600CBFD
+cmpy@$BEFD@jrz@$28@raly@$1600CBFD@sll@$30CB
+cp@$B8@lbcd@$4BED@rarr@$18CB@spix@$F9DD
+cpd@$A9ED@ld@$40@rarx@$1E00CBDD@spiy@$F9FD
+cpdr@$B9ED@ldai@$57ED@rary@$1E00CBFD@sra@$28CB
+cpi@$A1ED@ldar@$5FED@res@$80CB@srar@$28CB
+cpir@$B1ED@ldd@$A8ED@resx@$8600CBDD@srax@$2E00CBDD
+cpl@$2F@lddr@$B8ED@resy@$8600CBFD@sray@$2E00CBFD
+daa@$27@lded@$5BED@ret@$C9@srl@$38CB
+dadc@$4AED@ldi@$A0ED@reti@$4DED@srlr@$38CB
+dadx@$9DD@ldir@$B0ED@retn@$45ED@srlx@$3E00CBDD
+dady@$9FD@ldx@$46DD@rl@$10CB@srly@$3E00CBFD
+dcrx@$35DD@ldy@$46FD@rla@$17@sspd@$73ED
+dcry@$35FD@lixd@$2ADD@rlc@$CB@stai@$47ED
+dcxix@$2BDD@liyd@$2AFD@rlca@$7@star@$4FED
+dcxiy@$2BFD@lspd@$7BED@rlcr@$CB@stx@$70DD
+dec@$5@lxix@$21DD@rlcx@$600CBDD@sty@$70FD
+di@$F3@lxiy@$21FD@rlcy@$600CBFD@sub@$90
+djnz@$10@mvix@$36DD@rld@$6FED@subx@$96DD
+dsbc@$42ED@mviy@$36FD@rr@$18CB@suby@$96FD
+ei@$FB@neg@$44ED@rra@$1F@xor@$A8
+ex@$EB@nop@$0@rrc@$8CB@xorx@$AEDD
+exaf@$8@or@$B0@rrca@$F@xory@$AEFD
+exx@$D9@orx@$B6DD@rrcr@$8CB@xtix@$E3DD
+halt@$76@ory@$B6FD@rrcx@$E00CBDD@xtiy@$E3FD
+im@$46ED@otdr@$BBED@rrcy@$E00CBFD
 .TE
+.bp
 .Pp
-Values for Z-180\zzmn mnemonics.
+Values for Z-180\ezzmn mnemonics.
 .TS
 tab(@),center,box;
 rf(CB) rf(CB).
@@ -2012,8 +1968,11 @@ No errors.
 .It 1
 One or more errors were found during assembly, or zmac exited with a
 fatal error.
+.El
 .Sh CREDITS
-Bruce Norskog originally wrote zmac in 1978.
+Bruce Norskog originally wrote
+.Nm
+in 1978.
 .Pp
 Updates and bugfixes over the years by John Providenza, Colin Kelley,
 and more recently by Russell Marks, Mark RISON, Chris Smith,
