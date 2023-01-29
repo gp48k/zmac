@@ -8,3 +8,7 @@ zmac.tab.c
 zmac.tab.h
 doc
 doc.inl
+make.err
+*.pdf
+*.html
+*.1.gz

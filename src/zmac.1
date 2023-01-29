@@ -1,0 +1,1990 @@
+.Dd $Mdocdate$
+.Dt ZMAC 1
+.Os
+.de Cod
+\\$4\f[\\$1]\\$2\fP\\$3
+..
+.Sh NAME
+.Nm zmac
+.Nd Z80 macro assembler.
+.Sh SYNOPSIS
+.Nm
+.Op Fl 8bcefghijJlLmnopstz
+.Op Fl \-help
+.Op Fl \-version
+.Op Fl \-dep
+.Op Fl \-mras
+.Op Fl \-od Ar dir
+.Op Fl \-oo Ar sfx1,sfx2
+.Op Fl \-xo Ar sfx1,sfx2
+.Op Fl \-dri
+.Op Fl \-rel
+.Op Fl \-rel7
+.Op Fl \-nmnv
+.Op Fl \-z180
+.Op Fl \-fcal
+.Op Fl \-zmac
+.Op file[.z]
+.Sh OVERVIEW OF ZMAC
+.Nm
+is a Z-80 macro cross-assembler.
+It has all the features you'd expect.
+It assembles the specified input file (with a
+.Cod CW .z '' ``
+extension if there is no pre-existing extension and the file as given
+doesn't exist) and produces program output in many different
+formats@format.
+.Pp
+It also produces a nicely-formatted listing of the machine code and
+cycle counts alongside the source in a
+.Cod CW .lst '' ``
+file.
+.Pp
+To reduce clutter and command line option usage, by default all
+.Nm
+output is put into an (auto-created)
+.Cod CW zout
+subdirectory.
+For
+.Cod CW file.z
+the listing will be in
+.Cod CW zout/file.z ,
+the TRS-80 executable format in
+.Cod CW zout/file.cmd '' ``
+and so on.
+For more friendly usage in make files and integrated development
+environments the
+.Fl o ,
+.Fl \-oo ,
+.Fl \-xo
+and
+.Fl \-xd
+options may be used to select specific output file formats and where
+they are written.
+.Pp
+Undocumented@undoc Z-80 instructions are supported as well as 8080 and
+Z-180 (aka HD64180).
+.Pp
+.Nm
+strives to be a powerful assembler with expressions familiar to C
+programmers while providing good backward compatibility with original
+assemblers such as Edtasm, MRAS and Macro-80.
+.Pp
+Space-separated arguments in the
+.Ev ZMAC__ARGS
+environment variable arguments are added to the end of the command line.
+.Sh OPTIONS
+.Bl -tag
+.It Fl \-help
+Display a list of options and a terse description of what the options do.
+.It Fl \-version
+Print
+.Nn
+version name.
+.It Fl \-mras
+MRAS compatibility mode.
+Any
+.Cod CW ? '' ``
+in a label will be expanded to the current module
+identifier as set by
+.Cod CW mod .
+Operator precedence@mrasord and results are changed.
+.It Fl \-od Ar dir
+Place output files in
+.Cod I dir '' ``
+instead of the default
+.Cod CW zout '' ``
+subdirectory.
+Creates
+.Cod I dir '' ``
+if necessary.
+.It Fl \-oo Ar hex,cmd
+Output only the the file types by suffix.
+Multiple
+.Fl \-oo
+arguments may be used.
+.Cod CW "\-\-oo \fP\fIlst,cas" '' ``
+is equivalent to
+.Cod CW "\-\-oo \fP\fIlst" "" ``
+.Cod CW "\-\-oo \fP\fIcas ''.
+See
+.Cod I "Output Formats" '' ``
+for a list of output types by suffix@format.
+.It Fl \-xo Ar tap,wav
+Do not output the file type types listed by suffix.
+.It Fl \-dri
+Enable compatibility with Digital Research (CP/M) assemblers:
+.Bl -bullet
+.It
+Ignores dollar signs in constants and symbols.
+.It
+Silences a warning when using
+.Cod CW Z80.LIB `` ''.
+.It
+Allows the use of
+.Cod CW * ' `
+in first column for comment lines.
+.It
+Accepts
+.Cod CW $-MACRO '' ``
+directives.
+.El
+.Pp
+.It Fl \-nmnv
+Do not interpret Z-80 or 8080 mnemonics as values in expressions.
+.It Fl \-rel
+Output
+.Cod CW .rel '' ``
+(relocatable object file) format only.
+Exported symbols are truncated to length 6.
+.It Fl \-rel7
+Output
+.Cod CW .rel '' ``
+(relocatable object file) format only.
+Exported symbols are truncated to length 7.
+.It Fl \-zmac
+.Nm
+compatibility mode.
+.Ar defl
+labels are undefined after each pass.
+Quotes and double quotes are stripped from macro arguments before expansion.
+.Cod CW $ '' ``
+is ignored in identifiers allowing
+.Cod CW foo$bar '' ``
+to construct identifiers in macro expansions.
+Use
+.Cod CW ` '' ``
+(backquote) instead in normal mode.
+Labels starting with
+.Cod CW . '' ``
+are temporary and are reset whenever
+a non-temporary label is defined (thus they may be reused).
+Labels starting with
+.Cod CW __ '' ``
+are local to their file thus avoid
+multiple definition when brought in with
+.Cod CW include .
+.It Fl \-z180
+Use Z-180 timings and extended instructions.
+Undocumented Z-80 instructions will generate errors as the Z-180 (or
+H64810) does not support them.
+Equivalent to
+.Cod CW .180 '' ``
+pseudo-op.
+.It Fl \-dep
+Print all files read by
+.Cod CW include '', ``
+.Cod CW incbin '' ``
+and
+.Cod CW import ''. ``
+.It Fl \-doc
+Print this documentation in HTML format to standard output.
+.It Fl Pk=\c
+.Ar number
+Set
+.Cod CW @\fP\fIk '' ``
+to the given numeric value before assembly.
+Up to 10 parameters can be set from
+.Cod CW 0
+though
+.Cod CW 0 .
+.Cod CW -P\fP\fIk '' ``
+is shorthand for
+.Cod CW \-P\fP\fIk\fP\f(CW=-1 ''. ``
+For example,
+.Cod CW \-P4=$123 '' ``
+effectively puts
+.Cod CW "@4 equ $123" '' ``
+at the top of the first file.
+.It Fl D Ar symbol
+Define
+.Ar symbol
+to be
+.Cod CW 1
+before assembly.
+.It Fl \-fcal
+Always treat an indentifier in the first column as a label.
+.Nm
+uses various heuristics in the case of ambiguity when a label does not
+have a colon.
+This option turns heuristics off.
+.It Fl 8
+Accept 8080 mnemonics preferentially and use 8080 instruction timings.
+Equivalent to
+.Cod CW .8080
+pseudo-op.
+.It Fl b
+Don't generate any machine code output at all.
+.It Fl c
+Don't display cycle counts in the listing.
+.It Fl e
+Omit the
+.Cod I "error report" '' ``
+section in the listing.
+.It Fl f
+List instructions not assembled due to
+.Cod CW if '' ``
+expressions
+being false. (Normally these are not shown in the listing.)
+.It Fl g
+List only the first line of equivalent hex for a source line.
+.It Fl h
+Display a list of options and a terse description of what the options do.
+(same as
+.Cod CW \-\-help )
+.It Fl i
+Don't list files included with
+.Cod CW include '', ``
+.Cod CW read '' ``
+or
+.Cod CW import ''. ``
+.It Fl I Ar dir
+Add
+.Cod I dir '' ``
+to the end of the include file search path.
+.It Fl j
+Promote relative jumps and
+.Cod CW DJNZ
+to absolute equivalents as needed.
+.It Fl J
+Error if an absolute jump could be replaced with a relative jump.
+.It Fl l
+List to standard output.
+.It Fl L
+Generate listing no matter what.
+Overrides any conflicting options.
+.It Fl m
+List macro expansions.
+.It Fl n
+Omit line numbers from listing.
+.It Fl o Ar filename.cmd
+Output only the named file.
+Multiple
+.Cod CW \-\-o '' ``
+options can be used to name a set of
+different files.
+.It Fl p
+Use a few linefeeds for page break in listing rather than
+.Cod CW ^L ''. ``
+.It Fl P
+Output listing for a printer with headers, multiple symbols per column, etc.
+.It Fl s
+Omit the symbol table from the listing.
+.It Fl t
+Only output number of errors instead list of each one.
+.It Fl z
+Accept Z-80 mnemonics preferentially and use Z-80 instruction timings.
+Equivalent to
+.Cod CW .z80
+pseudo-op.
+.El
+.Sh INPUT FORMAT
+.Nm
+uses the standard Zilog mnemonics, and the pseudo-ops are also
+largely as you'd expect.
+.Pp
+A
+.Cod CW . '' ``
+may optionally preceeed any psuedo-op.
+For example,
+.Cod CW .org '' ``
+and
+.Cod CW org '' ``
+are treated as equivalent.
+.Pp
+Input can be upper or lowercase.
+.Pp
+Comments start with
+.Cod CW ; '' ``
+and carry on to the end of the line.
+.Pp
+Number constants can take a trailing
+.Cod CW h '' ``
+or a leading
+.Cod CW $ '' ``
+or
+.Cod CW 0x '' ``
+for hex, a trailing
+.Cod CW b '' ``
+for binary, a trailing
+.Cod CW o '' ``
+or
+.Cod CW q '' ``
+for octal, or a trailing
+.Cod CW d '' ``
+for decimal.
+.Pp
+.Cod CW 'LH'
+(any length 2 string) can be treated as a number whose
+value is
+.Cod CW "'H' * 256 + 'L'" ''. ``
+.Pp
+For compatibility and to ease writing code that generates code, any
+mnemonic can be used as a data value.
+For example,
+.Cod CW "mvi a, xra" '' ``
+will load
+.Cod CW A
+register with
+.Cod CW $A8 .
+And
+.Cod CW "dw ldir" '' ``
+will output the same data as
+.Cod CW ldir '' ``
+by itself
+.Cod CW ldir '' (``
+evaluates to
+.Cod CW $B0ED ''.) ``
+.Pp
+A full table@mneval of mnemonics and their values is in Mnemonic Values.
+The
+.Fl \-nmnv
+command line option turns off this feature.
+.Pp
+Labels are declared with
+.Cod CW label:
+or just
+.Cod CW label
+/(emindentation is unimportant.
+Labels can be up to 40 chars long.
+They can start with and contain letters, digits,
+.Cod CW $ '', ``
+.Cod CW . '', ``
+.Cod CW ? '', ``
+.Cod CW @ '' ``
+and
+.Cod CW _ ''. ``
+Ambiguous identifiers like
+.Cod CW $FCB '' ``
+will be treated as hex constants unless defined as a label.
+Labels
+declared with two colons
+.Cod CW label:: '') (``
+make the label public.
+.Pp
+Single quotes are ignored at the end of identifiers allowing non-binding
+notation@prime indicating alternate register use during heavy applications
+of
+.Cod CW exx '' ``
+and
+.Cod CW ex ''. ``
+.Pp
+Here is how other things work.
+Numbers are used as examples, but a full expression@expr can be used in
+their place.
+.Sh DATA
+.Bl -tag
+.It Cm defb Ar 42
+A byte,
+.Cm ascii ,
+.Cm byte ,
+.Cm db ,
+.Cm defm ,
+.Cm dm ,
+and
+.Cm text
+are synonyms.
+.It Cm defb Ar 'foobar'
+An ASCII character string (not NUL-terminated).
+Double quotes can also be used.
+.It Cm defb Ar "'Who needs anything more than CP/M', 13, 10,'$'
+Strings and bytes can mix together.
+.It Cm defw Ar 2112
+.It Cm defw Ar $123,0x456
+A word (16 bits).
+.Cm word
+and
+.Cm dw
+are synonyms.
+.It Cm def3 Ar $123456
+A 3 byte word (24 bits).
+.Cw d3
+is a synonym.
+.It Cm defd Ar $12345678
+A double word (32 bits).
+.Cw dword
+is a synonym.
+.It Cm defs Ar 500
+Skip output ahead 500 bytes.
+This will insert 500 zeros in the
+.Cod CW .ams '' ``
+and
+.Cod CW .cim '' ``
+output files or, if inside a
+.Cod CW .phase '' ``
+section.
+.Cw block ,
+.Cw ds
+and
+.Cw rmem
+are synonyms.
+.It Cm dc Ar 'string'
+Like
+.Cm ascii
+but accepts only a single string and the high bit of the
+last character will be set.
+.Cm bytes
+is a synonym.
+.It Cm dc Ar count Cm , Ar value
+Repeat the byte
+.Ar value
+a total of
+.Ar count
+times.
+Similar to
+.Cm defs
+except that memory is always filled with
+.Ar value .
+.It Cm incbin Ar file
+Inserts the raw contents of the file into the assembly.
+Simpler for large amounts of data.
+.El
+.Sh SYMBOLS
+.Bl -tag
+.It Ar label Cm equ Ar 100
+Define a symbol to have a fixed value.
+The symbol can be used before it is defined.
+A symbol defined with
+.Cm equ
+or as a
+.Ar label
+can be defined only once, except that a symbol defined with
+.Cm equ
+may be redefined to the same value.
+.It Ar varname Cm defl Ar 200
+Define a symbol to have a changeable value.
+The symbol cannot be used before it is defined, and it can be redefined
+to a different value later with another
+.Cm defl .
+.Cm aset ,
+.Cm set
+and
+.Cm =
+are synonyms (despite
+.Cm set
+also being a Z-80 mnemonic).
+.It Ar "varname \fROP\f(CB= \fIexpression"
+Shorthand for
+.Ar varname
+.Cm defl
+.Ar varname
+OP
+.Ar expression .
+Allows for C-like handling of variable such as
+.Ar var
+.Cm +=
+.Ar 5 .
+OP
+can be
+.Cm + ,
+.Cm - ,
+.Cm * ,
+.Cm / ,
+.Cm % ,
+.Cm & ,
+.Cod CB | ,
+.Cm ^ ,
+.Cm << ,
+.Cm >> ,
+.Cm &&
+or
+.Cm || .
+.It Ar varname Cm ++
+Shorthand for
+.Ar varname
+.Cm defl
+.Ar varname
+.Cm +
+1
+.It Ar varname Cm --
+Shorthand for
+.Ar varname
+.Cm defl
+.Ar varname
+.Cm -
+1
+.It Cm min
+.It Cm max
+Same as
+.Cod CW defl
+except that the symbol is defined as the smaller or bigger of two
+comma-separated expressions.
+.It Cm "name equ register
+Define a symbol to be an alias of a register.
+.Cod CW "count equ bc
+lets
+.Cod CW count
+stand for register
+.Cod CW bc
+so
+.Cod CW push count
+and
+.Cod CW dec count
+will both operate on
+register
+.Cod CW bc .
+.It  Cm *mod
+Increment the internal module name string.
+The first time this results in
+.Cod CW a ''. ``
+Then
+.Cod CW b '', ``
+.Cod CW c '', ``
+\&...
+.Cod CW z ''. ``
+Then
+.Cod CW aa '', ``
+.Cod CW ab '', ``
+.Cod CW ac '', ``
+etc.\ all the way up to
+.Cod CW zzzz ''.  ``
+The module name string is used in
+.Cod CB \-\-mras
+mode, where
+.Cod CW ? '' ``
+in label names is replaced with the current module name.
+.It Cm extern Ar lab1,lab2,...
+The listed labels are defined in an external module for later linking.
+No effect unless
+.Nm
+is producing
+.Cod CW .rel '' ``
+output.
+.Cod CW ext
+and
+.Cod CW extrn
+are synonyms.
+.It Cm public Ar lab1,lab2,...
+The given labels will be visible to external modules when linking.
+No effect unless
+.Nm
+is producing
+.Cod CW .rel
+output.
+.Cod CW global
+and
+.Cod CW entry
+are synonyms.
+.It Cm "label ++
+Equivalent to
+.Cod CW "label defl label + 1" .
+.It Cm "label --
+Equivalent to
+.Cod CW "label defl label - 1" .
+.It Cm "label += 10
+.It Cm "label -= 10
+Equivalent to
+.Cod CW "label defl label + 10
+and
+.Cod CW "label defl label - 10" ,
+respectively.
+Also works for
+.Cod CW *= ,
+.Cod CW /= ,
+.Cod CW %= ,
+.Cod CW |= ,
+.Cod CW &= ,
+.Cod CW ^= ,
+.Cod CW <<=
+and
+.Cod CW >>= .
+.El
+.Sh LOCATION CONTROL
+.Bl -tag
+.It Cm org Ar 9000h
+Set the address to assemble to
+.Cod I 0x9000 .
+.It Cm phase Ar address
+Continue to produce code and data for loading at the current
+.Ar address
+but assemble instructions and define labels as if they originated at
+the given
+.Ar address .
+Useful when producing code that will be copied to a different
+location before being executed (e.g., an overlay).
+.It Cm dephase
+End
+.Cod CW phase
+mode assembly.
+.It Cm aseg
+.It Cm cseg
+.It Cm dseg
+Switch to the absolute, code and data segments respectively.
+No effect unless zmac is producing
+.Cod CW .rel '' ``
+output.
+.It Cm "common /name/
+Set the address to the start of the selected common block.
+The blank common block will be selected if
+.Cod I name
+is empty or all blanks or omitted entirely.
+No effect unless
+.Nm
+is producing
+.Cod CW .rel '' ``
+output.
+.El
+.Sh INPUT CONTROL
+.Bl -tag
+.It Cm end Op Ar arg
+Ends the input.
+Any lines after an
+.Cod CW end
+are silently ignored.
+If an
+.Ar arg
+is given, it declares the entry address for the program.
+This has no effect in
+.Cod CW .cim '' ``
+output.
+In
+.Cod CW .hex '' ``
+output it generates an S-record directing 0 bytes of data to be loaded
+at the given address.
+It Cm "is required for
+.Cod CW .500.cas '', ``
+.Cod CW .1000.cas '' ``
+and
+.Cod CW .1500.cas '' ``
+output.
+.It Cm "if ..." Op Cm "else ..." endif
+For conditional assembly.
+If you do
+.Cm if
+.Ar foo
+and
+.Ar foo
+evaluates to zero, all the lines up until the next corresponding
+.Cm else
+or
+.Cm endif
+are completely ignored.
+Conversely, if
+.Ar foo
+evaluates to non-zero, any lines from a corresponding
+.Cm else
+to the
+.Cm endif
+are ignored.  Ifs can be nested.
+.Cm cond/endc
+are synonyms for
+.Cod CW if\fP/\f(CWendif .
+.It Cm "ifdef symbol
+Like
+.Cod CW if ,
+but tests if
+.Ar symbol
+has been defined.
+Declaring a
+.Ar symbol
+as external counts as it being defined.
+.It Cm ifndef Ar symbol
+Like
+.Cod CW if ,
+but tests if
+.Ar symbol
+has not yet been defined.
+.It Cm ifeq Ar expr1,expr2
+.It Cm ifne Ar expr1,expr2
+.It Cm iflt Ar expr1,expr2
+.It Cm ifgt Ar expr1,expr2
+Shorthand for
+.Cod CW "if expr1 == expr2" ,
+.Cod CW != ,
+.Cod CW < ,
+.Cod CW > .
+For MRAS and MAC80 compatibility.
+.It Cm import Ar file
+Like
+.Cm include
+but will only bring in the file once.
+File tracking is done using only the file name so, for example, an
+.Cm import
+.Ar file
+will stop both
+.Cm import
+.Ar ./file
+and
+.Cm import
+.Ar dir/file ,
+even if they actually refer to different files.
+.It Cm include Ar file
+Include a file.
+Like C's (well, cpp's)
+.Cm #include
+and follows the same include path search rules, but the filename arg
+lacks the angle brackets or quotes (though single or double quotes
+may be used).
+.Cm read
+is a synonym.
+.Cm *include
+.Ar file
+and
+.Cm *get
+.Ar file
+work if started in the first column.
+In
+.Op \-mras
+mode
+.Cod CW .asm '' ``
+will be added if
+.Ar file
+has no suffix and
+.Cm file/ext
+will be changed to
+.Cm file.ext
+Original MRAS source uses TRS-80 file system names where
+.Cm /
+is the extension introducer.
+.It Cm maclib Ar file
+Like
+.Cm include
+but adds
+.Cm .lib
+to the file name so includes
+.Cod CW file.lib .
+.It Cm comment Ar X
+Suspend assembly until the next occurence of character
+.Ar X
+on a line.
+The rest of the line will be ignored.
+A multi-line comment.
+.It Cm assert Ar expr
+Stop assembly if
+.Ar expr
+is non-zero.
+.El
+.Sh CYCLE COUNTING
+.Bl -tag
+.It Cm sett Ar expr
+Set the current T-state count to
+.Cod I expr .
+.Cod CW tstate
+is a synonym.
+.It Cm setocf Ar expr
+Set the current opcode fetch count to
+.Cod I expr .
+.El
+.Sh CODE GENERATION
+.Bl -tag
+.It Cm 8080
+Make cycle counting operators return 8080 cycle counts and
+interpret any ambiguous assembly statements as Intel 8080 mnemonics.
+.Cod CW CP
+will be interpreted as
+.Cod I "call on positive" '' ``
+and
+.Cod CW JP
+as
+.Cod I "jump on positive" ''. ``
+.It Cm z80
+Make cycle counting operators return Z-80 cycle counts and
+interpret any ambiguous assembly statements as Zilog Z-80 mnemonics.
+.Cod CW CP
+will be interpreted as
+.Cod I "compare accumulator" '' ``
+and
+.Cod CW JP
+as
+.Cod I "jump unconditionally" ''. ``
+.It Cm z180
+Allow assembly of Z-180 instructions.
+Make cycle counting operators return Z-180 cycle counts and
+interpret any ambiguous assembly statements as Zilog Z-180 mnemonics.
+.Cod CW CP
+will be interpreted as
+.Cod I "compare accumulator" '' ``
+and
+.Cod CW JP
+as
+.Cod I "jump unconditionally" ''. ``
+.It Cm "jperror enable
+If
+.Cod I enable
+is non-zero, turn on errors when
+.Cod CW JR
+instructions could be used
+instead of
+.Cod CW JP ,
+off otherwise.
+Used to check existing code for situations where shorter code could be
+generated.
+Same as
+.Fl J
+option.
+No effect if in 8080 mode.
+.It Cm "jrpromote enable
+If
+.Cod I enable
+is non-zero,
+.Cod CW JR
+and
+.Cod CW DJNZ
+instructions will be promoted to equivalent
+.Cod CW JP
+and
+.Cod CW "DEC B" ,
+.Cod CW "JP NZ
+instructions if the relative branch offset is out of range.
+If
+.Cod I enable
+is zero, promotion is disabled.
+Same as the
+.Fl j
+option.
+No effect if in 8080 mode.
+.El
+.Sh UNDOCUMENTED INSTRUCTIONS
+Most Z-80 chips support a number of undocumented instructions that were part
+of the original design but not made an offical part of the Zilog
+specification.
+These instructions may not be supported by all Z-80 chips, especially
+licensed variants, but are fairly widely available nonetheless.
+.Bl -tag
+.It Cm sl1 Ar r
+Same as
+.Cm sla
+.Ar r
+but shifts a 1 into the lower bit of
+.Ar r
+rather than a 0.
+.It Cm "in (c)
+Inputs a byte from port
+.Cm c
+but does not store the value.
+Flags are still set as with the normal
+.Cod CW "in r,(c)
+instruction.
+.It Cm "out (c),0
+Outputs a zero to port
+.Cod CW c .
+.It Cm "bit/set/res n,(ix+d),r
+.It Cm "rlc/rrc/rl/rr/sla/sl1/sra/srl (iy+d),r
+Same as the corresponding operation on just
+.Cm (ix+d)
+or
+.Cm (iy+d)
+but with the result being stored both into
+.Cm "(ix+d)
+and register
+.Cod I r .
+Except for bit
+.Cod I n ,
+which has no effect on
+.Cod I r .
+.Nm
+supports the syntax to allow those instruction patterns to be generated.
+.Pp
+The upper and lower bytes of the
+.Cod CW ix
+and
+.Cod CW iy
+can be used in a number of instructions much in the same way as
+.Cod CW d
+and
+.Cod CW e
+correspond to the upper and lower bytes of
+.Cod CW de .
+.Nm
+names these as
+.Cod CW ixh ,
+.Cod CW ixl ,
+.Cod CW iyh
+and
+.Cod CW iyl .
+Also acceptable are
+.Cod CW xh ,
+.Cod CW xl ,
+.Cod CW yh ,
+.Cod CW yl
+and
+.Cod CW hx ,
+.Cod CW lx ,
+.Cod CW hy ,
+.Cod CW ly .
+They are referred to generically as
+.Cm ixylh
+here.
+.It Cm inc/dec/add/adc/sub/sbc/and/xor/or/cp Ar ixylh
+Arithmetic or logical operation on
+.Cod CW ix
+or
+.Cod CW iy ,
+high or low byte.
+.It Cm ld a/b/c/d/e, Ar ixylh
+Load register with
+.Cod CW ix
+or
+.Cod CW iy ,
+high or low byte.
+.It Cm ld Ar ixylh,a/b/c/d/e
+Load
+.Cod CW ix
+or
+.Cod CW iy
+high or low byte with register.
+.It Cm "pfix
+.It Cm "pfiy
+Output
+.Cod CW $DD
+and
+.Cod CW $FD
+prefix bytes.
+The Z-80 allows multiple prefix bytes
+for IX and IY instructions.
+This allows you to specify them abstractly.
+There is little purpose except for delaying an interrupt or confusing
+disassemblers.
+.El
+.Sh MISCELLANEOUS
+.Bl -tag
+.It Cm pragma Ar str ...
+Like C's
+.Cod CW #pragma ,
+a generic hook for special purpose operations.
+Only two are currently defined.
+.Bl -tag
+.It Cm "pragma bds" Ar rest-of-line
+to output
+.Ar rest-of-line
+to the
+.Cod CW .bds '' ``
+output file.
+.It Cm "pragma mds" Ar rest-of-line
+to output
+.Ar rest-of-line
+to the
+.Cod CW .mds '' ``
+output file.
+.El
+The
+.Cod CW .bds '' ``
+output format supports setting initial values for Z-80 registers
+and I/O ports so
+.Cod CW pragma
+gives you access to that.
+.Pp
+The
+.Cod CW .mds '' ``
+output format is a
+.Cod CW MAME
+debug script thus additional initial
+debugging commands may be output.
+Of particular use on the TRS-80 Model II
+is
+.Cod CW "pragma mds ib@$ff=1
+which maps page 1 of RAM into
+.Cod CW "$8000 .. $FFFF
+and thus allows programs to load into that area.
+.It Cm name Ar str
+Set the name of the output module to
+.Cod I str .
+For compatibility reasons
+.Ar str
+may be parenthesized (e.g.,
+.Cod CW "name ('foo')" ).
+Not all output formats support an internal name and many have severe
+length limits.
+.It Cm rsym and Cm wsym
+Read/write a symbol file.
+These simply load/save the currently defined
+symbols from/to the file specified (in a non-portable format).
+.Cod CW rsym
+takes place at the point it is encountered in the file (on the first
+pass);
+.Cod CW wsym
+is delayed until assembly has finished.
+.El
+.Sh LISTING PSEUDO-OPS
+There are several pseudo-ops for controlling the listing. None of
+these ops appear in the listing themselves:
+.Bl -tag
+.It Cm eject
+Start a new listing page.
+.It Cm nolist
+Do nothing.
+This can be used to have a comment in the source but not
+the listing, I suppose.
+.It Cm elist
+.It Cm flist
+.It Cm glist
+.It Cm mlist
+These have the same effect as the similarly-named command-line
+options, though possibly with the sense reversed depending on the
+default. Use an
+.Ar arg
+.Cm "> 0
+(or no arg) to enable, and an arg
+.Cm "< 0
+to disable.
+.It Cm list Ar arg
+Turns output to listing file
+.Cod CW .list ) (
+off if
+.Cod I arg
+.Cm "< 0
+or on if
+.Ar arg
+.Cod CW "> 0 .
+If no
+.Ar arg
+is supplied then listing is enabled.
+Use this to avoid listing certain parts of the source.
+In
+.Op \-mras
+mode
+.Ar arg
+must be either
+.Cm on
+or
+.Cm off
+and
+.Cod CW *list
+can be used if started in the first column.
+.It Cm title
+Set title (used in listing and symbol file).
+.It Cm space Ar arg
+Output
+.Ar arg
+blank lines in the listing, or one line if no arg is given.
+.El
+.Sh EXPRESSIONS
+Expressions feature a full set of C operators with the same precedence
+rules and some common assembler extensions and names.
+Here is the complete list of operators, highest-precedence first.
+Operators separated only by a space are synonyms; for example,
+.Cm ~
+is the same as
+.Cm not .
+.Bl -bullet
+.It
+.Cm !\c
+(logical),
+.Cm ~
+.Cm not
+(bitwise),
+.Cm +
+(unary),
+.Cm \-
+(unary),
+.Cm low ,
+.Cm high ,
+.Cm t ,
+.Cm tilo ,
+.Cm tihi ,
+.Cm ocf
+.It
+.Cm * ,
+.Cm / ,
+.Cm % mod
+.It
+.Cm + ,
+.Cm \-
+.It
+.Cm <<
+.Cm shl ,
+.Cm >> shr
+.It
+.Cm <
+.Cm lt ,
+.Cm > gt ,
+.Cm <= le ,
+.Cm >= ge
+.It
+.Cm == = eq ,
+.Cm != <> ne
+.It
+.Cm & and
+(bitwise)
+.It
+.Cm ^ xor
+(bitwise)
+.It
+.Cod CB |
+.Cm or
+(bitwise)
+.It
+.Cm &&
+.It
+.Cm ||
+.It
+.Cod CB "? :
+(ternary choice operator)
+.El
+Expressions\emrasord change significantly in
+.Fl \-mras
+mode:
+Evaluation is strictly left to right.
+Except for
+.Cm and ,
+.Cm or ,
+.Cm xor
+and
+.Cm = .
+This doesn't break compatibility as original MRAS source code only allows
+.Cm .and. ,
+.Cm .or.
+and
+.Cm .xor.
+but the precedence difference may surprise if code is added.
+.Pp
+.Cod CB !
+is bitwise OR instead of logical not.
+.Pp
+.Cm <
+is left shift (or right shift when shift amount is negative)
+.Pp
+MRAS operators (\c
+.Cm .and.
+.Cm .eq.
+.Cm .ge.
+.Cm .gt.
+.Cm .high.
+.Cm .le.
+.Cm .low.
+.Cm .lt.
+.Cm .mod.
+.Cm .ne.
+.Cm .not.
+.Cm .or.
+.Cm .shl.
+.Cm .shr.
+.Cod CB .xor. )
+are recognized even if apparently in identifers.  (e.g.,
+.Cm a.or.b
+is seen as
+.Cod CB "a\ .or.\ b" )
+.Pp
+Logical operators return
+.Cm -1
+for true and
+.Cm 0
+for false.
+Normally
+.Cod CB zmac ,
+like C, uses
+.Cm 1
+for true.
+.Pp
+You can use normal parentheses or square brackets to override
+the precedence rules.
+Square brackets can be used where parentheses would
+conflict with Z-80 mnemonic syntax, but this is not necessary in any
+practical case.
+.Pp
+The
+.Cod CB ?
+may need spaces around it to distinguish it from a label that
+has
+.Cod CB ?
+in it.
+.Pp
+The unary operators not familiar to C programmers:
+.Bl -tag
+.It Cm low Ar expr
+Returns low 8 bits of
+.Ar expr
+.It Cm high Ar expr
+Returns high 8 bits of
+.Ar expr
+.It Cm t Ar expr
+Current count of T-states up to memory location
+.Ar expr
+.It Cm tilo Ar expr
+Low count of T-states used by instruction at memory location
+.Ar expr
+.It Cm tihi Ar expr
+High count of T-states used by instruction at memory location
+.Ar expr
+.It Cm ocf Ar expr
+Current count of opcode fetches up to memory location
+.Ar expr
+.El
+.Sh MACROS
+The following defines a macro named m with zero or more formal parameters
+.Cod CB p1 ,
+.Cod CB p2 ,
+.Cod CB ... ,
+.Cod CB p \c
+.Cod I <n> ,
+zero or more local symbols
+.Cod CB ?s1 ,
+.Cod CB ?s2 ,
+.Cod CB ... ,
+.Cod CB ?s \c
+.Cod I <m> ,
+and body
+.Cod CB b1 ,
+.Cod CB b2 ,
+.Cod CB ... .
+.Bd -literal
+m   macro p1, p2, ..., pn, ?s1, ?s2, ..., ?sm
+    b1
+    b2
+    ...
+    endm
+.Ed
+The macro is called by writing:
+.Bd -literal
+    m v1, v2, ..., vn
+.Ed
+.Pp
+A macro call expands to the text of the macro's body, with each
+occurrence of a formal parameter
+.Cod CB pk
+replaced by the corresponding
+value
+.Cod CB vk ,
+and with each local symbol
+.Cod CB ?sk
+replaced by a new, unique symbol invented for this call.
+Invented symbols begin with
+.Cod CB ? ,
+so you should avoid using such symbols elsewhere in your program.
+.Pp
+.Nm
+currently does not check that you have provided the right number
+of parameters when calling a macro.
+If you provide too few, unmatched formals are replaced with the empty string.
+If you provide too many, the additional values begin to replace local
+symbols as if they were ordinary parameters.
+(This could be considered a feature.)
+After the local symbols are all replaced, additional parameters
+are silently ignored.
+.Pp
+For compatibility with Macro-80, the first line of a macro definition can
+list other labels that will be treated locally:
+.Bd -literal
+    local lab1,lab2,...
+.Ed
+Each time the macro is expanded the local labels are replaced with unique
+names thus avoiding multiple definition problems.
+.Pp
+For compatability with MRAS, macro arguments may be preceeded by
+.Cod CB #
+in their definition and use.
+.Pp
+Any
+.Cod CB `
+(backquote) in a macro is ignored thus allowing a macro to
+construct identifiers.
+For example:
+.Bd -literal
+move macro dir
+     ld`dir`r
+     endm
+.Ed
+Invoking
+.Cm move i
+will construct a
+.Cm ldir
+block move instruction.
+.Pp
+For compatibility,
+.Cm &
+can also be used as in MAC to concatenate macro parameters.
+This conflicts with
+.Cod CB zmac 's
+bitwise and operator but you can use the
+.Cm and
+synonym in macros to avoid the conflict.
+.Pp
+In
+.Fl \-mras
+mode arguments will be expanded even if they are inside other
+identifiers.
+The
+.Cm move
+could be written:
+.Bd -literal
+move macro dir
+     lddirr
+     endm
+.Ed
+Macro definitions can contain macro definitions which will be defined
+when the outer macro is first exapnded.
+Macros can be redefined as well.
+.Pp
+Macro expansion continues to the
+.Cm endm
+directive but can be stopped prematurely by the
+.Cm exitm
+directive.
+Typically the
+.Cm exitm
+is inside some conditional part of the macro.
+.Pp
+Parameters passed to a macro can be empty and are tested with the
+.Cm nul
+operator:
+.Bd -literal
+    if nul &par
+    ...
+    endif
+.Ed
+Macro parameters can contain commas if grouped inside
+.Cm <
+and
+.Cm > .
+Or a comma can be escaped with
+.Cm ^
+which can also escape spaces and other special characters.
+It is also be put in front of a macro parameter name inside the expansion
+to suppress the replacement by its value.
+.Pp
+Expansion of parameters in a macro body is purely textual.
+This can lead to surprises in complex situations.
+The
+.Cod CB %
+character can be used to force a macro parameter to be replaced with the
+evaluation of it as an expression.
+.Sh INLINE MACROS
+.Nm
+supports the commonly available
+.Cm rept ,
+.Cm irp
+and
+.Cm irpc
+inline macros
+.Pp
+.Cod CB rept
+repeats its block the given number of times.
+This will output 10
+.Cm nop
+instructions:
+.Bd -literal
+    rept 10
+    nop
+    endm
+.Ed
+.Cm irpc
+runs through a string of letters assigning them to a variable and
+expanding the macro block each time.
+For example, this will load 7 into
+registers
+.Cm b ,
+.Cm d
+and
+.Cm h :
+.Bd -literal
+    irpc reg,bdh
+    ld &reg,7
+    endm
+.Ed
+.Cm irp
+runs through a list of parameters assiging each entry to a variable
+and expanding the macro block.
+Here we load
+.Cm bc_,
+.Cm de
+and
+.Cm hl
+with 0:
+.Bd -literal
+    irp rpair,<bc,de,hl>
+    ld &rpair,0
+    endm
+.Ed
+Lists can be nested.
+Here's an example of and
+.Cm irp
+passing lists on down
+to another
+.Cm irp :
+.Bd -literal
+    irp listlist,<<one,two,three>,<four,five,six>>_
+      irp list,<listlist>
+        ascii '&list'
+      endm
+    endm
+.Ed
+.Sh COMPATIBILITY
+.Nm
+is broadly compatible with many original Z-80 and 8080 assemblers
+because it accepts many different names for common operations and has
+liberal identifier and numeric formats.
+It also accepts most simple usage of macros.
+.Pp
+When assembling old code keep these portability problems in mind.
+.Pp
+Expression order of evaluation may be different.
+.Nm
+uses C semantics more order of evaluation but assemblers often used
+simple left to right ordering.
+.Nm
+will evaluate
+.Cod CB "2+2*3
+as
+.Cm 8
+where other assemblers will yield
+.Cm 12 .
+However, in
+.Fl \-mras
+mode expressions are evaluated strictly left-to-right for compatibility.
+.Pp
+.Nm
+has no support operating on strings in macros.
+Assemblers like Macro-80 could perform conditional tests on strings.
+.Pp
+Advanced macros are unlikely to work.
+.Nm
+hasn't advanced to the state where all the possible ways of substituting
+parameters are supported.
+.Pp
+Consult the original assembler manual.
+.Nm
+error messages won't help you figure out what an unknown assembler command
+is supposed to do.
+.Pp
+Compare against original output.
+The very safest thing to do when porting assembly code is to compare the
+binary output of
+.Nm
+against that produced by the original assembler.
+This way you can ensure everything has been interpreted correctly.
+Only once that has been achieved should you modify the code.
+.Sh ERRORS AND WARNINGS
+Any errors or warnings encountered during assembly are reported to standard
+error and in the listing file.
+The errors output immediately give the source file and line number
+containing the error.
+In listings the error letter and message appear just after the line
+containing the error.
+.Bl -tag
+.It B
+Balance error.
+.Pp
+A string is missing an closing quote or an
+.Cm if
+is missing an
+.Cm endif
+.It E
+Expression error
+.Pp
+An expression did not parse or attempts a divide or modulus by 0.
+.It F
+Syntax error
+.Pp
+General problem with the syntax on a line.
+Sometimes extra explanation will be printed on standard output.
+.It I
+Digit error
+.Pp
+A numeric constant has too many digits to be represented as a 32 bit number.
+.It M
+Mult. def. error
+.Pp
+A symbol has been defined more than once and those values differ.
+.It P
+Phase error
+.Pp
+On the second or subsequent assembly passes the assembly has changed
+significantly.  Most commonly it means an _if_ has changed conditions
+but can also happen when labels or equated values do not converge to
+a fixed value.
+.It U
+Undeclared error
+.Pp
+An undeclared symbol was used in an expression or _public_ statement.
+.It V
+Value error
+.Pp
+An invalid value was given to a statement.
+Often this means using less than
+.Cm -128
+or greater then
+.Cm 255
+in a
+.Cm defb
+or less than
+.Cm -32768
+or greater than
+.Cm 65535
+in a
+.Cm defw .
+Or similar invalid values used Z-80/8080 opcodes requiring an 8 or 16 bit
+value (and other restrictions like
+.Cm 0
+to
+.Cm 7
+for
+.Cod CB BIT ).
+Also if a relative jump is out of range or if a negative value is given
+in
+.Cm defs
+or
+.cm dc .
+.It O
+Phase/Dephase error
+.Pp
+.Cm phase
+was used within another
+.Cm phase
+or
+.Cm dephase
+without
+.Cm phase .
+Or if
+.Cm org
+is used within
+.Cm phase .
+.It A
+Assertion failure error
+.Pp
+An assert statement evaluated to zero.
+.It J
+Use JR error
+.Pp
+An absolute jump instruction was used where relative jump was in range
+of the destination address.
+Only generated if
+.Fl j
+or
+.Cm jrpromote
+is in effect.
+.It R
+Not relocatable error
+.Pp
+An expression was used that must be generated at link time but cannot
+be handled by the
+.Cod CW .rel '' ``
+format.
+For instance, an
+.Cm org
+to a symbol in the data segment when in the code segment.
+Or a relative jump to a different segment.
+The
+.Cod CW .rel '' ``
+format can evaluate expressions at link time using the
+.Cm high ,
+.Cm low ,
+.Cm not ,
+.Cm \- ,
+.Cm + ,
+.Cm * ,
+.Cm /
+and
+.Cm %
+operators.
+.Nm
+is clever enough to use
+.Cm high
+or
+.Cm low
+in place of
+.Cm "& $ff00
+and
+.Cm "& 255" .
+But it won't replace a
+.Cm shl
+with a multiply.
+.It G
+Register usage error
+.Pp
+A invalid register was given to an instruction.
+For example,
+.Cm "LD B,(DE)
+or
+.Cm "ADD HL,IX" .
+.It Z
+Invalid instruction.
+.Pp
+The instruction is not valid for the current architecture.
+For example, a Z-80@zmn instruction in 8080 mode (\c
+.Cm .8080
+or
+.Cm -8
+mode is in effect).
+Or a Z-180@zzmn instruction in 8080 or Z-80 mode.
+Or an undocumented Z-80 instruction in Z-180 mode.
+However, use use of Z-80 mnemonics that output valid 8080 instructions
+is always OK.
+.It H
+.Cm $hex
+constant interpreted as symbol warning
+.Pp
+A symbol such as
+.Cm $FCB
+has been defined even though it could appear to be a hexadecimal constant.
+.Nm
+will treat
+.Cm $FCB
+as symbol for the entire assembly which could be rather surprising if that
+were not the intent.
+.It N
+Not implemented warning
+.Pp
+For statements that have been added as parse rules but have no effect.
+The only current example is
+.Cm subttl
+which sets the sub title of a listing
+in certain assemblers.
+.It W
+Generic warning
+.Pp
+Higher-level warning; see text of warning for explanation.
+.El
+.Sh OUTPUT FORMATS
+Except for
+.Cod CW ".rel" '', ``
+.Nm
+writes every known output when assembling by default.
+This is no burden on modern computers and saves having to meticulously select
+the desired output format.
+.Pp
+.Cod CW ".rel" '' ``
+is a special case since that format is intended for linking and
+can have undefined external symbols which would be errors in the other formats.
+Conversely, a simple
+.Cm "org $8000"
+will be an error for
+.Cod CB ".rel" '' ``
+output as it defaults to the code segment where absolute origin statements
+are forbidden.
+.Pp
+If
+.Cod CW ".rel" '' ``
+is selected for output either by
+.Fl \-relopt
+or with
+.Fl \-oo Ar rel
+or
+.Fl o Ar file.rel
+then all other output formats are suppressed (except the
+.Cod CW ".lst" '' ``
+source file listing).
+.Bl -tag
+.It Cm .ams
+AMSDOS executable format for Amstrad computers.
+.It Cm .bds
+For source-level debugging and automatic memory protecttion in
+trs80gp@http://www.48k.ca/trs80gp.html
+.It Cm .1500.cas
+TRS-80 high-speed (1500 baud) cassette SYSTEM file.
+The internal name of the file is the source file name shortened to 6
+characters with suffixes removed.
+Requires an entry address.
+.It Cm .250.cas
+TRS-80 250 baud cassette Level I CLOAD file.
+If your program has an entry address and
+.Cm $41FE
+does not contain that entry address then the file will be loaded at
+.Cm $41FE
+with relocation code added to move it to the desired location.
+.It Cm .500.cas
+TRS-80 low-speed (500 baud) cassette SYSTEM file.
+The internal name of the file is the source file name shortened to 6
+characters with suffixes removed.
+Requires an entry address.
+.It Cm .1000.cas
+Identical to 500 baud but intended for double-speed LNW-80 which can
+can load cassette files at double speed for an effective 1000 baud rate.
+Requires an entry address.
+.It Cm .cim
+Core In-Memory image.
+A raw binary format with the first byte corresponding to the lowest
+generated code or data and proceeding contiguously until the highest
+address generated.
+Any gaps are filled with zeros.
+Typically used for CP/M where all executables start at address
+.Cm 256
+or for ROM images.
+.It Cm .cmd
+TRS-80 DOS executable file format as used by all major DOSes on the TRS-80
+(TRS-DOS, LDOS, MULTIDOS, NEWDOS, etc.)
+.It Cm .hex
+Intel hex record format.
+.It Cm .rel
+Relocatable object module format as produced by MACRO-80 and other
+assemblers.
+.It Cm .tap
+ZX Spectrum cassette tape format.
+.It Cm .1500.wav
+Same as
+.Cm .1500.cas
+but in ready-to-play audio format.
+.It Cm .250.wav
+Same as
+.Cm .250.cas
+but in ready-to-play audio format.
+.It Cm .500.wav
+Same as
+.Cm .500.cas
+but in ready-to-play audio format.
+.It Cm .1000.wav
+Same as
+.Cm .1000.cas
+but in ready-to-play audio format.
+.It Cm .mds
+MAME debug script (e.g., mame trs80 -d -debugscript zout/prog.mds)
+.El
+.Sh MISCELLANEOUS
+In the symbol table listing, the
+.Cm =
+separator is given for those symbols
+defined by
+.Cm equ
+or
+.Cm defl .
+The
+.Cm /
+separator is shown for common blocks.
+Aliases are distinguished by their double-quoted strings.
+.Pp
+The
+.Cod CW .rel '' ``
+file format can store symbol names of up to 7 characters in length.
+However, MACRO-80 truncates symbols to 6 characters so that it has one
+character in reserve for extending linking operations such as subtracting
+two externals from each other.
+To be compatible (and sensible),
+.Fl \-rel
+truncates externals to 6 characters.
+For MRAS compatibility,
+.Fl \-mras
+truncates symbols to 7 characters.
+This is not a problem for MRAS as it doesn't support extended linking.
+But necessary if you want zmac to produce
+.Cod CW .rel '' ``
+files that will link with MRAS generated
+.Cod CW .rel '' ``
+files.
+The
+.Fl \-rel7
+option sets symbol truncation to 7 characters so you can assemble files
+that will link with MRAS output.
+However, it will break extended linking on labels longer than 6 characters.
+.Pp
+The ignoring\eprime of single quotes can be handy for tracking alternate
+register usage.
+Consider the following code fragment:
+.Bd -literal
+    ld    a,(hl)
+    rra
+    exx
+    ld    a,(hl')
+    ex    af,af'
+    ld    a',(hl')
+    rra'
+    ex    af,af'
+    djnz' loop
+    ld    d',e'
+    exx
+.Ed
+Although
+.Nm
+does nothing but ignore the single quotes they are useful for
+indicating which register is currently active.
+A more advanced mode where
+.Nm
+pays attention to the trailing quotes and emits exchange instructions
+as needed has been considered.
+.Sh OFFICIAL ZILOG SYNTAX
+The official Zilog syntax for Z-80 has some rather arbitrary restrictions
+that
+.Nm
+ignores.
+For instance,
+.Cm "add a,b
+is the only correct form but
+.Cm "sub a,b
+is invalid as
+.Cm "sub b
+must be used.
+Here is a list of
+the official and alternate forms of the various affected instructions.
+.Cod I rmni
+refers to
+.Cm a ,
+.Cm b ,
+.Cm c ,
+.Cm d ,
+.Cm e ,
+.Cm h ,
+.Cm l ,
+.Cm (hl) ,
+.Cm (ix+d) ,
+.Cm (iy+d)
+or
+8 bit immediate value.
+.ds rmi \\fIrmni
+.TS
+tab(@),box,center;
+lB lB
+lf(CB)|lf(CB).
+Official@Accepted Variant
+_
+add   a,\*[rmi]@add   \*[rmi]
+adc   a,\*[rmi]@adc   \*[rmi]
+sub   \*[rmi]@sub   a,\*[rmi]
+sbc   a,\*[rmi]@sbc   \*[rmi]
+cp    \*[rmi]@cp    a,\*[rmi]
+and   \*[rmi]@and   a,\*[rmi]
+xor   \*[rmi]@xor   a,\*[rmi]
+or    \*[rmi]@or    a,\*[rmi]
+jp    (hl)@jp    hl
+jp    (ix)@jp    ix
+jp    (iy)@jp    iy
+ex    de,hl@ex    hl,de
+ex    hl,(sp)@ex    (sp),hl
+ex    ix,(sp)@ex    (sp),ix
+ex    iy,(sp)@ex    (sp),iy
+in    a,(n)@in    a,n
+out   (n),a@out   n,a
+in    r,(c)@in    r,(bc)
+out   (c),r@out   (bc),r
+rst   8@rst   1
+rst   16@rst   2
+rst   24@rst   3
+rst   32@rst   4
+rst   40@rst   5
+rst   48@rst   6
+rst   56@rst   7
+.TE
+.bp
+.Sh MNEMONIC VALUES
+Values for 8080 mnemonics.  Note that
+.Cm jp
+are interpreted as
+.Cod I "compare immediate" '' ``
+and
+.Cod I "jump if positive" '' ``
+in 8080 mode.
+.TS
+tab(@),center,box;
+rf(CB) lf(CB) |rf(CB) lf(CB) |rf(CB) lf(CB) |rf(CB) lf(CB).
+aci@$CE@dad@$09@ldax@$0A@rnz@$C0
+adc@$88@dcr@$05@lhld@$2A@rp@$F0
+add@$80@dcx@$0B@lxi@$01@rpe@$E8
+adi@$C6@dec@$01@mov@$40@rpo@$E0
+ana@$A0@di@$F3@mvi@$06@rrc@$0F
+ani@$E6@ei@$FB@nop@$00@rst@$C7
+call@$CD@hlt@$76@ora@$B0@rz@$C8
+cc@$DC@in@$DB@ori@$F6@sbb@$98
+cm@$FC@inr@$04@out@$D3@sbi@$DE
+cma@$2F@inx@$03@pchl@$E9@shld@$22
+cmc@$3F@jc@$DA@pop@$C1@sphl@$F9
+cmp@$B8@jm@$FA@push@$C5@sta@$32
+cnc@$D4@jmp@$C3@ral@$17@stax@$02
+cnz@$C4@jnc@$D2@rar@$1F@stc@$37
+cp@$B8@jnz@$C2@rc@$D8@sub@$90
+cpe@$EC@jp@$F2@ret@$C9@sui@$D6
+cpi@$FE@jpe@$EA@rlc@$07@xchg@$EB
+cpo@$E4@jpo@$E2@rlcr@$07@xra@$A8
+cz@$CC@jz@$CA@rm@$F8@xri@$EE
+daa@$27@lda@$3A@rnc@$D0@xthl@$E3
+.TE
+.bp
+.Pp
+Values for Z-80\zmn mnemonics.
+Ambiguous mnemonics such as
+.Cm ld
+and
+.Cm inc
+evaluate to the 8 bit register operation base value.
+.Cm ex
+is arbitrarily mapped to
+.Cm "ex de,hl" .
+Bit and shift operations on
+.Cm (IX+d)
+and
+.Cm (IY+d)
+evaluate to 32 bit values and the offset goes into the third byte.
+.Cm and ,
+.Cm or
+and
+.Cm xor
+can be used in data statements but parsing ambiguity
+prevents their use in operations.
+.TS
+tab(@),center,box;
+rf(CB)p7 lf(CB)p7|rf(CB)p7 lf(CB)p7|rf(CB)p7 lf(CB)p7|rf(CB)p7 lf(CB)p7.
+adc@$88@im0@$46ED@otir@$B3ED@rrd@$67ED
+adcx@$8EDD@im1@$56ED@out@$D3@rst@$C7
+adcy@$8EFD@im2@$5EED@outd@$ABED@sbc@$98
+add@$80@in@$DB@outdr@$BBED@sbcd@$43ED
+addx@$86DD@inc@$4@outi@$A3ED@sbcx@$9EDD
+addy@$86FD@ind@$AAED@outir@$B3ED@sbcy@$9EFD
+and@$A0@indr@$BAED@outp@$41ED@scf@$37
+andx@$A6DD@ini@$A2ED@pcix@$E9DD@sded@$53ED
+andy@$A6FD@inir@$B2ED@pciy@$E9FD@set@$C0CB
+bit@$40CB@inp@$40ED@pfix@$DD@setb@$C0CB
+bitx@$4600CBDD@inrx@$34DD@pfiy@$FD@setx@$C600CBDD
+bity@$4600CBFD@inry@$34FD@pop@$C1@sety@$C600CBFD
+call@$CD@inxix@$23DD@popix@$E1DD@sixd@$22DD
+ccd@$A9ED@inxiy@$23FD@popiy@$E1FD@siyd@$22FD
+ccdr@$B9ED@jp@$F2@push@$C5@sl1@$30CB
+ccf@$3F@jr@$18@pushix@$E5DD@sla@$20CB
+cci@$A1ED@jrc@$38@pushiy@$E5FD@slar@$20CB
+ccir@$B1ED@jrnc@$30@ralr@$10CB@slax@$2600CBDD
+cmpx@$BEDD@jrnz@$20@ralx@$1600CBDD@slay@$2600CBFD
+cmpy@$BEFD@jrz@$28@raly@$1600CBFD@sll@$30CB
+cp@$B8@lbcd@$4BED@rarr@$18CB@spix@$F9DD
+cpd@$A9ED@ld@$40@rarx@$1E00CBDD@spiy@$F9FD
+cpdr@$B9ED@ldai@$57ED@rary@$1E00CBFD@sra@$28CB
+cpi@$A1ED@ldar@$5FED@res@$80CB@srar@$28CB
+cpir@$B1ED@ldd@$A8ED@resx@$8600CBDD@srax@$2E00CBDD
+cpl@$2F@lddr@$B8ED@resy@$8600CBFD@sray@$2E00CBFD
+daa@$27@lded@$5BED@ret@$C9@srl@$38CB
+dadc@$4AED@ldi@$A0ED@reti@$4DED@srlr@$38CB
+dadx@$9DD@ldir@$B0ED@retn@$45ED@srlx@$3E00CBDD
+dady@$9FD@ldx@$46DD@rl@$10CB@srly@$3E00CBFD
+dcrx@$35DD@ldy@$46FD@rla@$17@sspd@$73ED
+dcry@$35FD@lixd@$2ADD@rlc@$CB@stai@$47ED
+dcxix@$2BDD@liyd@$2AFD@rlca@$7@star@$4FED
+dcxiy@$2BFD@lspd@$7BED@rlcr@$CB@stx@$70DD
+dec@$5@lxix@$21DD@rlcx@$600CBDD@sty@$70FD
+di@$F3@lxiy@$21FD@rlcy@$600CBFD@sub@$90
+djnz@$10@mvix@$36DD@rld@$6FED@subx@$96DD
+dsbc@$42ED@mviy@$36FD@rr@$18CB@suby@$96FD
+ei@$FB@neg@$44ED@rra@$1F@xor@$A8
+ex@$EB@nop@$0@rrc@$8CB@xorx@$AEDD
+exaf@$8@or@$B0@rrca@$F@xory@$AEFD
+exx@$D9@orx@$B6DD@rrcr@$8CB@xtix@$E3DD
+halt@$76@ory@$B6FD@rrcx@$E00CBDD@xtiy@$E3FD
+im@$46ED@otdr@$BBED@rrcy@$E00CBFD
+.TE
+.bp
+.Pp
+Values for Z-180\ezzmn mnemonics.
+.TS
+tab(@),center,box;
+rf(CB) rf(CB).
+in0@$00ED
+mlt@$4CED
+otdm@$8BED
+otdmr@$9BED
+otim@$83ED
+otimr@$93ED
+out0@$01ED
+slp@$76ED
+tst@$04ED
+tstio@$74ED
+.TE
+.Sh EXIT STATUS
+.Bl -tag
+.It 0
+No errors.
+.It 1
+One or more errors were found during assembly, or zmac exited with a
+fatal error.
+.El
+.Sh CREDITS
+Bruce Norskog originally wrote
+.Nm
+in 1978.
+.Pp
+Updates and bugfixes over the years by John Providenza, Colin Kelley,
+and more recently by Russell Marks, Mark RISON, Chris Smith,
+Matthew Phillips and Tim Mann.
+.Pp
+Extensive modifications for cycle counting, multiple output formats,
+".rel" output, 8080 mode and older assembler compatibilty were written
+by George Phillips.
+.Pp
+This document was based on Russell Marks
+.Nm
+man page which had tweaks by Mark RISON and Tim Mann.
+George Phillips converted it to HTML and documented the new features
+and some older ones (e.g.,
+.Cod CB phase/dephase ).
