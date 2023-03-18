@@ -1875,6 +1875,7 @@ void do_defl(struct item *sym, struct expr *val, int call_list);
 #define SPNAME	(2)	/* name */
 #define SPCOM	(3)	/* comment */
 #define SPPRAGMA (4)	/* pragma */
+#define SPRINTX (5)	/* printx */
 
 %}
 
@@ -2585,6 +2586,12 @@ statement:
 				fprintf(fmds, "%s\n", tempbuf + 4);
 			}
 			list1();
+			break;
+		case SPRINTX:
+			p = tempbuf;
+			quote = *p++;
+			q = strchr(p, quote);
+			printf("%.*s\n", (int)(q - p), p);
 			break;
 		}
 	}
@@ -4720,6 +4727,7 @@ struct	item	keytab[] = {
 	{"popix",	0xdde1,	NOOPERAND,	VERB | Z80 | ZNONSTD },
 	{"popiy",	0xfde1,	NOOPERAND,	VERB | Z80 | ZNONSTD },
 	{"pragma",	SPPRAGMA,SPECIAL,	VERB },
+	{".printx",	SPRINTX,	SPECIAL,	VERB | COL0 },
 	{"psw", 	060,	PSW,		I8080 },
 	{".public",	0,	PUBLIC,		VERB },
 	{"push",	0305,	PUSHPOP,	VERB | I8080 | Z80 },
