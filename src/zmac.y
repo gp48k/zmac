@@ -624,6 +624,8 @@ char	*writesyms;
 
 char	*title;
 char	titlespace[TITLELEN];
+char	*subtitle;
+char	subtitlespace[TITLELEN];
 char	*timp;
 char	*sourcef;
 /* changed to cope with filenames longer than 14 chars -rjm 1998-12-15 */
@@ -1658,8 +1660,9 @@ void lineout()
 		line = 0;
 	}
 	if (line == 0) {
-		fprintf(fout, "\n\n%s %s\t%s\t Page %d\n\n\n",
-			&timp[4], &timp[20], title, page++);
+		fprintf(fout, "\n\n%s %s\t%s\t Page %d\n%s\n\n",
+			&timp[4], &timp[20], title, page++,
+			subtitle ? subtitle : "");
 		line = 4;
 	}
 	line++;
@@ -2533,7 +2536,14 @@ statement:
 			list1();
 			break;
 		case SPSBTL:
-			err[warn_notimpl]++;
+			cp = tempbuf;
+			subtitle = subtitlespace;
+			if (*cp == '\'' || *cp == '"')
+				quote = *cp++;
+			while ((*subtitle++ = *cp++) && (subtitle < &subtitlespace[TITLELEN]));
+			if (quote && subtitle > subtitlespace + 1 && subtitle[-2] == quote)
+				subtitle[-2] = '\0';
+			subtitle = subtitlespace;
 			list1();
 			break;
 		case SPNAME:
@@ -4800,7 +4810,7 @@ struct	item	keytab[] = {
 	{"stx",		0xdd70,	ST_XY,		VERB | Z80 | ZNONSTD},
 	{"sty",		0xfd70,	ST_XY,		VERB | Z80 | ZNONSTD},
 	{"sub",		0220,	LOGICAL,	VERB | I8080 | Z80 },
-	{".subttl",	SPSBTL,	SPECIAL,	VERB },
+	{".subttl",	SPSBTL,	SPECIAL,	VERB | COL0 },
 	{"subx",	0xdd96,	ALU_XY,		VERB | Z80 | ZNONSTD },
 	{"suby",	0xfd96,	ALU_XY,		VERB | Z80 | ZNONSTD },
 	{"sui",		0326,	ALUI8,		VERB | I8080 },
