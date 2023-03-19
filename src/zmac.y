@@ -1998,6 +1998,7 @@ void do_defl(struct item *sym, struct expr *val, int call_list);
 %token NUL
 %token <itemptr> MPARM
 %token <itemptr> TK_IN0 TK_OUT0 MLT TST TSTIO
+%token LALL SALL XALL
 
 %type <itemptr> label.part symbol
 %type <ival> allreg reg evenreg ixylhreg realreg mem memxy pushable bcdesp bcdehl bcdehlsp mar condition
@@ -2587,6 +2588,7 @@ statement:
 			}
 			list1();
 			break;
+
 		case SPRINTX:
 			p = tempbuf;
 			quote = *p++;
@@ -2839,6 +2841,21 @@ statement:
 		// popsi() must be made safe as others use it.
 		list1();
 		popsi();
+	}
+|
+	LALL '\n' {
+		err[warn_notimpl]++;
+		list1();
+	}
+|
+	SALL '\n' {
+		err[warn_notimpl]++;
+		list1();
+	}
+|
+	XALL '\n' {
+		err[warn_notimpl]++;
+		list1();
 	}
 |
 	error {
@@ -4637,6 +4654,7 @@ struct	item	keytab[] = {
 	{"jrz",		0x28,	JR_COND,	VERB | Z80 | ZNONSTD },
 	{"jz",		0312,	JUMP8,		VERB | I8080 },
 	{"l",		5,	REGNAME,	I8080 | Z80 },
+	{".lall",	0,	LALL,		VERB | COL0 },
 	{"lbcd",	0xed4b,	LDST16,		VERB | Z80 | ZNONSTD },
 	{"ld",		0x40,	LD,		VERB | Z80 },
 	{"lda",		0x3a,	LDA,		VERB | I8080 },
@@ -4777,6 +4795,7 @@ struct	item	keytab[] = {
 	{"rst",		0307,	RST,		VERB | I8080 | Z80 },
 	{".rsym",	PSRSYM,	ARGPSEUDO,	VERB },
 	{"rz",		0310,	NOOPERAND,	VERB | I8080 },
+	{".sall",	0,	SALL,		VERB | COL0 },
 	{"sbb",		0230,	ARITHC,		VERB | I8080 },
 	{"sbc",		0230,	ARITHC,		VERB | Z80 },
 	{"sbcd",	0xed43,	LDST16,		VERB | Z80 | ZNONSTD },
@@ -4842,6 +4861,7 @@ struct	item	keytab[] = {
 	{"v",		050,	COND,		Z80 },
 	{".word",	0,	DEFW,		VERB },
 	{".wsym",	PSWSYM,	ARGPSEUDO,	VERB },
+	{".xall",	0,	XALL,		VERB | COL0 },
 	{"xchg",	0353,	NOOPERAND,	VERB | I8080 },
 	{"xh",   	0x1DD04,IXYLH,		Z80 | UNDOC },
 	{"xl",   	0x1DD05,IXYLH,		Z80 | UNDOC },
