@@ -97,6 +97,12 @@ the end of the command line.
   are local to their file thus avoid multiple definition when brought in
   with _include_.
  
+ --dotlocals
+  Labels that start with _"."_ are local between labels (implied by _--zmac_).
+ 
+ --filelocals
+  Labels that start with _"__"_ are local for the file (implied by _--zmac_).
+ 
  --z180
   Use Z-180 timings and extended instructions.  Undocumented Z-80 instructions
   will generate errors as the Z-180 (or H64810) does not support them.

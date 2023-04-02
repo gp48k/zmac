@@ -1,6 +1,6 @@
 %{
 // GWP - keep track of version via hand-maintained date stamp.
-#define VERSION "18april2022"
+#define VERSION "18oct2022"
 
 /*
  *  zmac -- macro cross-assembler for the Zilog Z80 microprocessor
@@ -227,9 +227,9 @@
  * gwp 10-4-22	Much better symbol table hash function from Al Petrofsky as
  *		used in gcc and gas.
  *
- * abog 18-4-22 Added two flags --dotlocals and --filelocals
+ * abog 18-4-22	Added two flags --dotlocals and --filelocals
  *		--dotlocals makes labels that start with '.' local between labels.
- * 		--filelocals makes labels that starts with '_' local for the file.
+ *		--filelocals makes labels that start with '_' local for the file.
  *
  * gwp 18-10-22	Added *GET, IFEQ, IFEQ, IFLT, IFGT to improved MRAS support.
  *		Change FILE/EXT to FILE.EXT for includes in --mras mode.
@@ -450,8 +450,8 @@ int	llseq;		// local label sequence number
 int	mras;		// MRAS semi-compatibility mode
 int	trueval = 1;	// Value returned for boolean true
 int	zcompat;	// Original zmac compatibility mode
-int dot_locals; // If this is set, labels that start with a '.' will be local between labels
-int file_locals; // If this is set, labels that start with a '_' will be local to the file
+int	dot_locals;	// If this is set, labels that start with a '.' will be local between labels
+int	file_locals;	// If this is set, labels that start with a '_' will be local to the file
 char	modstr[8];	// Replacement string for '?' in labels when MRAS compatible
 int	relopt;		// Only output .rel files and length of external symbols
 int	driopt;		// DRI assemblers compatibility
@@ -5660,15 +5660,15 @@ int tokenofitem(int deftoken, int keyexclude, int keyinclude)
 	// to enable all of zcompat. 
 	// It is a bit ugly and messy, but that is because i didn't 
 	// want to change the existing features.
-	if (zcompat | dot_locals | file_locals) {
+	if (zcompat || dot_locals || file_locals) {
 	    // '_' prefixed labels are local to the file
-	    if (tempbuf[0] == '_' && (zcompat | file_locals)) {
+	    if (tempbuf[0] == '_' && (zcompat || file_locals)) {
 		    strcat(tempbuf, "$");
 		    strcat(tempbuf, basename(src_name[now_in]));
 	    }
 
 	    // '.' prefixed labels are local between labels
-	    if (tempbuf[0] == '.' && (zcompat | dot_locals)) {
+	    if (tempbuf[0] == '.' && (zcompat || dot_locals)) {
 		    char *p = tempbuf;
 		    while (*p) p++;
 		    sprintf(p, "$%d", llseq);
