@@ -6475,6 +6475,12 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
+		// Silently accept this option to make private unit tests happy.
+		if (strcmp(argv[i], "--flow") == 0) {
+			/*default_flow_warn = */ atoi(argv[i = getoptarg(argc, argv, i)]);
+			continue;
+		}
+
 		if (strcmp(argv[i], "--od") == 0) {
 			output_dir = argv[i = getoptarg(argc, argv, i)];
 			continue;

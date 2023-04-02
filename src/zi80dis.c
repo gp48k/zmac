@@ -1389,12 +1389,14 @@ void Zi80dis_Disassemble(struct Zi80dis* this, const unsigned char *mem, int pc,
 	{
 		if (op == 0xED && this->m_processor == procZ180)
 		{
+			int i;
+
 			FETCH_TO(op);
 
 			code = &z_minor[2][op];
 
 			// Check if there are replacements for Z-180 instructions.
-			for (int i = 0; i < (int)(sizeof(change180) / sizeof(change180[0])); i++)
+			for (i = 0; i < (int)(sizeof(change180) / sizeof(change180[0])); i++)
 			{
 				if (op == change180[i].op)
 				{
@@ -1572,7 +1574,9 @@ void Zi80dis_Disassemble(struct Zi80dis* this, const unsigned char *mem, int pc,
 	// Translate ix to iy if necessary.
 	if (op0 == 0xfd)
 	{
-		for (int i = 0; this->m_format[i]; i++)
+		int i;
+
+		for (i = 0; this->m_format[i]; i++)
 		{
 			if (this->m_format[i] == 'i' && this->m_format[i + 1] == 'x')
 			{
@@ -1607,8 +1611,9 @@ void Zi80dis_Disassemble(struct Zi80dis* this, const unsigned char *mem, int pc,
 void Zi80dis_Format(struct Zi80dis* this, char *output)
 {
 	char arg[2][16];
+	int i;
 
-	for (int i = 0; i < this->m_numArg; i++)
+	for (i = 0; i < this->m_numArg; i++)
 	{
 		switch (this->m_argType[i])
 		{
