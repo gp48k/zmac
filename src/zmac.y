@@ -1,13 +1,12 @@
 %{
 // GWP - keep track of version via hand-maintained date stamp.
-#define VERSION "18oct2022"
+#define VERSION "18april2022"
 
 /*
  *  zmac -- macro cross-assembler for the Zilog Z80 microprocessor
  *
  *  Bruce Norskog	4/78
  *
- *  Last modification  1-18-87 by cdk
  *  This assembler is modeled after the Intel 8080 macro cross-assembler
  *  for the Intel 8080 by Ken Borgendale.  The major features are:
  *	1.  Full macro capabilities
@@ -228,7 +227,11 @@
  * gwp 10-4-22	Much better symbol table hash function from Al Petrofsky as
  *		used in gcc and gas.
  *
- * gwp 10-18-22	Added *GET, IFEQ, IFEQ, IFLT, IFGT to improved MRAS support.
+ * abog 18-4-22 Added two flags --dotlocals and --filelocals
+ *		--dotlocals makes labels that start with '.' local between labels.
+ * 		--filelocals makes labels that starts with '_' local for the file.
+ *
+ * gwp 18-10-22	Added *GET, IFEQ, IFEQ, IFLT, IFGT to improved MRAS support.
  *		Change FILE/EXT to FILE.EXT for includes in --mras mode.
  *		xh, xl, yh, yl, hx, lx, hy, ly alternates for ixh, ixy, iyh, iyl.
  */
@@ -447,6 +450,8 @@ int	llseq;		// local label sequence number
 int	mras;		// MRAS semi-compatibility mode
 int	trueval = 1;	// Value returned for boolean true
 int	zcompat;	// Original zmac compatibility mode
+int dot_locals; // If this is set, labels that start with a '.' will be local between labels
+int file_locals; // If this is set, labels that start with a '_' will be local to the file
 char	modstr[8];	// Replacement string for '?' in labels when MRAS compatible
 int	relopt;		// Only output .rel files and length of external symbols
 int	driopt;		// DRI assemblers compatibility
@@ -5650,15 +5655,20 @@ int tokenofitem(int deftoken, int keyexclude, int keyinclude)
 
 	// This is really my own thing rather than old zmac, but zmac
 	// didn't support it and it does depend on '$' crushing a bit.
-	if (zcompat) {
+	// I (ABlobOfGarbage, different person) quickly patched this 
+	// together so that i could have local labels without having 
+	// to enable all of zcompat. 
+	// It is a bit ugly and messy, but that is because i didn't 
+	// want to change the existing features.
+	if (zcompat | dot_locals | file_locals) {
 	    // '_' prefixed labels are local to the file
-	    if (tempbuf[0] == '_') {
+	    if (tempbuf[0] == '_' && (zcompat | file_locals)) {
 		    strcat(tempbuf, "$");
 		    strcat(tempbuf, basename(src_name[now_in]));
 	    }
 
 	    // '.' prefixed labels are local between labels
-	    if (tempbuf[0] == '.') {
+	    if (tempbuf[0] == '.' && (zcompat | dot_locals)) {
 		    char *p = tempbuf;
 		    while (*p) p++;
 		    sprintf(p, "$%d", llseq);
@@ -6348,6 +6358,8 @@ void help()
 	fprintf(stderr, "   --zmac\tcompatibility with original zmac\n");
 	fprintf(stderr, "   --fcal\tidentifier in first column is always a label\n");
 	fprintf(stderr, "   --doc\toutput documentation as HTML file\n");
+	fprintf(stderr, "   --dotlocals\tmake labels that start with '.' local between labels\n");
+	fprintf(stderr, "   --filelocals\tmake labels that start with '_' local to the file it is in\n");
 
 	exit(0);
 }
@@ -6433,6 +6445,16 @@ int main(int argc, char *argv[])
 
 		if (strcmp(argv[i], "--zmac") == 0) {
 			zcompat = 1;
+			continue;
+		}
+
+		if (strcmp(argv[i], "--dotlocals") == 0) {
+			dot_locals = 1;
+			continue;
+		}
+
+		if (strcmp(argv[i], "--filelocals") == 0) {
+			file_locals = 1;
 			continue;
 		}
 
