@@ -1,3 +1,11 @@
+!0
+!.Dd $Mdocdate$
+!.Dt ZMAC 1
+!.Os
+!.Sh NAME
+!.Nm zmac
+!.Nd Z-80 macro assembler
+!1
 .Overview of zmac
 zmac is a Z-80 macro cross-assembler. It has all the features you'd
 expect. It assembles the specified input file (with a '.z' extension
@@ -21,7 +29,10 @@ zmac strives to be a powerful assembler with expressions familiar to C
 programmers while providing good backward compatibility with original
 assemblers such as Edtasm, MRAS and Macro-80.
 ---
+!9
 .Usage
+!0
+!.Sh SYNOPSIS
 zmac
 [ --help ]
 [ --version ]
@@ -40,10 +51,12 @@ zmac
 [ --zmac ]
 [ -8bcefghijJlLmnopstz ]
 [ filename[.z] ]
+!2
 
 Space-separated arguments in the ZMAC__ARGS environment variable are added to
 the end of the command line.
 
+!1
 .Options
 
  --help
@@ -201,7 +214,7 @@ the end of the command line.
 zmac uses the standard Zilog mnemonics, and the pseudo-ops are also
 largely as you'd expect.
 
-A "_._" may optionally preceeed any psuedo-op.
+A "_._" may optionally preceed any psuedo-op.
 For example, "_.org_" and "_org_" are treated as equivalent.
 
 Input can be upper or lowercase.
@@ -237,6 +250,7 @@ expression@expr can be used in their place.
 
 ..Data
 
+!.Bl -tag
 _defb 42_
 |A byte.  _ascii_, _byte_, _db_, _defm_, _dm_ and _text_ are synonyms.
 
@@ -274,9 +288,11 @@ _dc count,value_
 _incbin file_
 |Inserts the raw contents of the file into the assembly.  Simpler for
 |large amounts of data.
+!.El
 
 ..Symbols
 
+!.Bl -tag
 _label equ 100_
 |Define a symbol to have a fixed value.  The symbol can be used before it
 |is defined.  A symbol defined with _equ_ or as a label can be defined only
@@ -339,9 +355,11 @@ _label -= 10_
 
 |Equivalent to _label defl label + 10_ and _label defl label - 10_ respectively.
 |Also works for _*=_, _/=_, _%=_, _|=_, _&=_, _^=_, _<<=_ and _>>=_.
+!.El
 
 ..Location Control
 
+!.Bl -tag
 _org 9000h_
 |Set the address to assemble to 0x9000.
 
@@ -365,9 +383,11 @@ _common /name/_
 |common block will be selected if name is empty or all blanks or
 |omitted entirely.
 |No effect unless zmac is producing ".rel" output.
+!.El
 
 ..Input Control
 
+!.Bl -tag
 _end_
 |Ends the input.  Any lines after an _end_ are silently ignored.
 |If an arg is given, it declares the entry address for the program.
@@ -425,17 +445,21 @@ _comment X_
 
 _assert expr_
 |Stop assembly if _expr_ is non-zero.
+!.El
 
 ..Cycle Counting
 
+!.Bl -tag
 _sett expr_
 |Set the current T-state count to _expr_. _tstate_ is a synonym.
 
 _setocf expr_
 |Set the current opcode fetch count to _expr_.
+!.El
 
 ..Code Generation
 
+!.Bl -tag
 _8080_
 |Make cycle counting operators return 8080 cycle counts and
 |interpret any ambiguous assembly statements as Intel 8080 mnemonics.
@@ -464,6 +488,7 @@ _jrpromote enable_
 |offset is out of range.  If _enable_ is zero, promotion is disabled.
 |Same as the _-j_ option.
 |No effect if in 8080 mode.
+!.El
 
 ..Undocumented Instructions\undoc
 
@@ -472,6 +497,7 @@ the original design but not made an offical part of the Zilog specification.
 These instructions may not be supported by all Z-80 chips, especially
 licensed variants, but are fairly widely available nonetheless.
 
+!.Bl -tag
 _sl1 r_
 |Same as _sla r_ but shifts a 1 into the lower bit of _r_ rather than a 0.
 
@@ -512,9 +538,11 @@ _pfiy_
 |for IX and IY instructions.  This allows you to specify them abstractly.
 |There is little purpose except for delaying an interrupt or confusing
 |disassemblers.
+!.El
 
 ..Miscellaneous
 
+!.Bl -tag
 _pragma str ..._
 |Like C's #pragma, a generic hook for special purpose operations.  Only two
 |are currently defined.
@@ -543,12 +571,14 @@ _rsym_ and _wsym_
 |symbols from/to the file specified (in a non-portable format). _rsym_
 |takes place at the point it is encountered in the file (on the first
 |pass); _wsym_ is delayed until assembly has finished.
+!.El
 
 ..Listing Pseudo-ops
 
 There are several pseudo-ops for controlling the listing. None of
 these ops appear in the listing themselves:
 
+!.Bl -tag
 _eject_
 |Start a new listing page.
 
@@ -574,6 +604,7 @@ _title_
 
 _space arg_
 |Output arg blank lines in the listing, or one line if no arg is given.
+!.El
 
 ---
 
@@ -585,6 +616,7 @@ Here is the complete list of operators, highest-precedence first.
 Operators separated only by a space are synonyms; for example, _~_
 is the same as _not_.
 
+!.Bl -tag
 _!_ (logical), _~ not_ (bitwise), _+_ (unary), _-_ (unary), _low_, _high_, _t_, _tilo_, _tihi_, _ocf_
 
 _*_, _/_, _% mod_
@@ -608,8 +640,10 @@ _&&_
 _||_
 
 _? :_  (ternary choice operator)
+!.El
 
 Expressions\mrasord change significantly in _--mras_ mode:
+!.Bl -tag
 |Evaluation is strictly left to right.  Except for _and_, _or_,
 |_xor_ and _=_.  This doesn't break compatibility as original MRAS
 |source code only allows _.and._, _.or._ and _.xor._ but the precedence
@@ -626,6 +660,7 @@ Expressions\mrasord change significantly in _--mras_ mode:
 
 |Logical operators return -1 for true and 0 for false.  Normally
 |zmac, like C, uses 1 for true.
+!.El
 
 You can use normal parentheses or square brackets to override
 the precedence rules. Square brackets can be used where parentheses would

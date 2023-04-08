@@ -1,15 +1,29 @@
-// Output documentation in HTML format.
+// Output documentation in HTML format or Unix manual page format.
 
 #include <stdio.h>
 #include <string.h>
+
+static int html = 1;
+static int man = 0;
 
 #ifdef MK_DOC
 #define DOC_DEBUG
 int main(int argc, char *argv[])
 {
-	void doc(void);
+	void doc(int pass);
 
-	doc();
+	if (argc > 1 && strcmp(argv[1], "-man") == 0) {
+		html = 0;
+		man = 1;
+	}
+
+	if (man) {
+		int i;
+		for (i = 0; i < 3; i++)
+			doc(i);
+	}
+	else
+		doc(-1);
 
 	return 0;
 }
@@ -29,15 +43,20 @@ static FILE *fp, *inl;
 #endif
 
 static int tt = 0;
+static int man_list = 0;
+static int man_uppercase = 0;
+static int man_nbsp = 0;
 
 static void print(char *str);
+static void print_item(char *p);
 
-void doc(void)
+void doc(int pass)
 {
 	char line[1024], *p;
 	int ch;
 	int table = 0, tcol = 0;
 	int blockquote = 0;
+	int pass_section = 0;
 
 #ifdef DOC_DEBUG
 	fp = fopen("doc.txt", "r");
@@ -81,9 +100,31 @@ void doc(void)
 		}
 #endif
 
+		if (line[0] == '!' && line[1] >= '0' && line[1] <= '9') {
+			pass_section = line[1] - '0';
+			continue;
+		}
+
+		if (pass >= 0 && pass_section != pass)
+			continue;
+
+		// Initial '!' is a special hint for manual page output.
+		if (*line == '!') {
+			if (man) {
+				printf("%s\n", line + 1);
+				man_list = line[1] && line[2] == 'B';
+			}
+			continue;
+		}
+
+		// In manual page an initial _ will trigger a list item start.
+		if (man && man_list && *line == '_') {
+			printf(".It ");
+		}
+
 		// An initial '|' means part of a block quote
 		if (*line == '|') {
-			if (!blockquote)
+			if (html && !blockquote)
 				printf("<BLOCKQUOTE>");
 
 			blockquote = 1;
@@ -93,7 +134,9 @@ void doc(void)
 		}
 
 		if (blockquote) {
-			printf("</BLOCKQUOTE>\n");
+			if (html)
+				printf("</BLOCKQUOTE>\n");
+
 			blockquote = 0;
 		}
 
@@ -110,58 +153,104 @@ void doc(void)
 				continue;
 
 			if (!table) {
-				printf("<TABLE>\n");
+				if (html)
+					printf("<TABLE>\n");
+				else if (man)
+					printf(".Bl -tag\n");
+
 				table = 1;
 				tcol = 0;
 			}
 
 			if (depth < tcol) {
-				printf("</TD></TR>\n");
+				if (html)
+					printf("</TD></TR>\n");
 				tcol = 0;
 			}
 
 			if (tcol == 0) {
-				printf("<TR><TD VALIGN=\"TOP\">");
-				printf("<PRE>"); // Column 1 is fixed width font for us
+				if (html) {
+					printf("<TR><TD VALIGN=\"TOP\">");
+					printf("<PRE>"); // Column 1 is fixed width font for us
+				}
+				if (man) {
+					print_item(p);
+					printf("\n");
+				}
+
 				tcol = 1;
+			}
+			else if (man && *p) {
+				print(p);
+				printf("\n");
 			}
 
 			while (tcol < depth) {
-				if (tcol == 1)
-					printf("</PRE>"); // Column 1 is fixed width font for us
-				printf("</TD><TD>");
+				if (html) {
+					if (tcol == 1)
+						printf("</PRE>"); // Column 1 is fixed width font for us
+					printf("</TD><TD>");
+				}
 				tcol++;
 			}
 
-			print(p);
-			printf(" ");
+			if (html) {
+				print(p);
+				printf(" ");
+			}
+
 			continue;
 		}
 		else if (table) {
-			if (tcol)
-				printf("</TD></TR>\n");
+			if (html) {
+				if (tcol)
+					printf("</TD></TR>\n");
 
-			printf("</TABLE>\n");
+				printf("</TABLE>\n");
+			}
+			if (man)
+				printf(".El\n");
+
 			table = 0;
 		}
 
 		// Line starting with '-' generates a full horizontal rule
 		if (*line == '-') {
-			printf("<HR>\n");
+			if (html)
+				printf("<HR>\n");
 			continue;
 		}
 		// Empty line denotes paragraph separation
 		if (*line == '\0') {
-			printf("<P>\n");
+			if (html)
+				printf("<P>\n");
+			if (man && !man_list)
+				printf(".Pp\n");
 			continue;
 		}
 		// Initial . for a heading.  More . for a lesser heading.
 		if (*line == '.') {
 			for (p = line; *p == '.'; p++)
 				;
-			printf("<H%d>", 3 + (int)(p - line - 1));
+
+			if (man) {
+				printf(".Sh ");
+				man_uppercase = 1;
+			}
+
+			if (html)
+				printf("<H%d>", 3 + (int)(p - line - 1));
+
 			print(p);
-			printf("</H%d>\n", 3 + (int)(p - line - 1));
+
+			if (html)
+				printf("</H%d>\n", 3 + (int)(p - line - 1));
+
+			if (man)
+				printf("\n");
+
+			man_uppercase = 0;
+
 			continue;
 		}
 
@@ -169,34 +258,40 @@ void doc(void)
 		printf("\n");
 	}
 
-	if (tt)
-		printf("</TT>\n");
+	if (tt) {
+		if (html)
+			printf("</TT>\n");
+		else if (man)
+			printf("\\fP");
+	}
 
-	printf("<p xmlns:dct=\"http://purl.org/dc/terms/\" xmlns:vcard=\"http://www.w3.org/2001/vcard-rdf/3.0#\">\n");
-	printf("  <a rel=\"license\"\n");
-	printf("     href=\"http://creativecommons.org/publicdomain/zero/1.0/\">\n");
-	printf("    <img src=\"http://i.creativecommons.org/p/zero/1.0/88x31.png\" style=\"border-style: none;\" alt=\"CC0\" />\n");
-	printf("  </a>\n");
-	printf("  <br />\n");
-	printf("  To the extent possible under law,\n");
-	printf("  <a rel=\"dct:publisher\"\n");
-	printf("     href=\"http://48k.ca/zmac.html\">\n");
-	printf("    <span property=\"dct:title\">George Phillips</span></a>\n");
-	printf("  has waived all copyright and related or neighboring rights to\n");
-	printf("  <span property=\"dct:title\">zmac macro cross assembler for the Zilog Z-80 microprocessor</span>.\n");
-	printf("This work is published from:\n");
-	printf("<span property=\"vcard:Country\" datatype=\"dct:ISO3166\"\n");
-	printf("      content=\"CA\" about=\"http://48k.ca/zmac.html\">\n");
-	printf("  Canada</span>.\n");
-	printf("</p>\n");
+	if (html) {
+		printf("<p xmlns:dct=\"http://purl.org/dc/terms/\" xmlns:vcard=\"http://www.w3.org/2001/vcard-rdf/3.0#\">\n");
+		printf("  <a rel=\"license\"\n");
+		printf("     href=\"http://creativecommons.org/publicdomain/zero/1.0/\">\n");
+		printf("    <img src=\"http://i.creativecommons.org/p/zero/1.0/88x31.png\" style=\"border-style: none;\" alt=\"CC0\" />\n");
+		printf("  </a>\n");
+		printf("  <br />\n");
+		printf("  To the extent possible under law,\n");
+		printf("  <a rel=\"dct:publisher\"\n");
+		printf("     href=\"http://48k.ca/zmac.html\">\n");
+		printf("    <span property=\"dct:title\">George Phillips</span></a>\n");
+		printf("  has waived all copyright and related or neighboring rights to\n");
+		printf("  <span property=\"dct:title\">zmac macro cross assembler for the Zilog Z-80 microprocessor</span>.\n");
+		printf("This work is published from:\n");
+		printf("<span property=\"vcard:Country\" datatype=\"dct:ISO3166\"\n");
+		printf("      content=\"CA\" about=\"http://48k.ca/zmac.html\">\n");
+		printf("  Canada</span>.\n");
+		printf("</p>\n");
 
-	printf("\n");
+		printf("\n");
 
-	printf("<!--\n");
-	printf("  If you ran \"zmac --doc\" you may want to send the output\n");
-	printf("  to a file using \"zmac --doc >zmac.html\" and then open\n");
-	printf("  zmac.html in your web browser.\n");
-	printf("-->\n");
+		printf("<!--\n");
+		printf("  If you ran \"zmac --doc\" you may want to send the output\n");
+		printf("  to a file using \"zmac --doc >zmac.html\" and then open\n");
+		printf("  zmac.html in your web browser.\n");
+		printf("-->\n");
+	}
 
 #ifdef DOC_DEBUG
 	fclose(fp);
@@ -245,23 +340,25 @@ static void link(char *str, char how)
 	print(str);
 	*text = save;
 
-	save = *id_end;
-	*id_end = '\0';
-	printf("<A ");
-	if (how == '@') {
-		printf("HREF=\"%s", strchr(id + len, ':') ? "" : "#");
+	if (html) {
+		save = *id_end;
+		*id_end = '\0';
+		printf("<A ");
+		if (how == '@')
+			printf("HREF=\"%s", strchr(id + len, ':') ? "" : "#");
+		else
+			printf("NAME=\"");
+		printf("%s\">", id + len);
+		*id_end = save;
 	}
-	else
-		printf("NAME=\"");
-	printf("%s\">", id + len);
-	*id_end = save;
 
 	save = *id;
 	*id = '\0';
 	print(text);
 	*id = save;
 
-	printf("</A>");
+	if (html)
+		printf("</A>");
 
 	print(id_end);
 }
@@ -306,8 +403,12 @@ static void print(char *str)
 			for (; *str == '#'; str++)
 				n++;
 
-			while (n-- > 1)
-				printf("&nbsp;");
+			while (n-- > 1) {
+				if (html)
+					printf("&nbsp;");
+				if (man)
+					printf("\\ ");
+			}
 
 			continue;
 		}
@@ -318,19 +419,52 @@ static void print(char *str)
 				str++;
 			}
 			else {
-				printf("<%sTT>", tt ? "/" : "");
+				if (html)
+					printf("<%sTT>", tt ? "/" : "");
+				else if (man)
+					printf("\\f%s", tt ? "P" : "C");
+
 				tt = !tt;
 			}
 		}
-		else if (*str == '<')
+		else if (html && *str == '<')
 			printf("&lt;");
-		else if (*str == '>')
+		else if (html && *str == '>')
 			printf("&gt;");
-		else if (*str == '&')
+		else if (html && *str == '&')
 			printf("&amp;");
+		else if (man && man_uppercase && *str >= 'a' && *str <= 'z')
+			printf("%c", *str - 'a' + 'A');
+		else if (man && man_nbsp && *str == ' ')
+			printf("\\ ");
 		else
 			printf("%c", *str);
 
 		str++;
+	}
+}
+
+static void print_item(char *p)
+{
+	// Bit of of guessing to figure out what kind of item this is.
+	if (*p == '-') {
+		printf(".It Fl ");
+		p++;
+		if (*p == '-')
+			printf("\\");
+
+		while (*p != '\0' && *p != ' ' && *p != '\t')
+			printf("%c", *p++);
+
+		if (*p) {
+			printf(" Ar ");
+			print(p);
+		}
+	}
+	else {
+		printf(".It ");
+		man_nbsp = 1;
+		print(p);
+		man_nbsp = 0;
 	}
 }
