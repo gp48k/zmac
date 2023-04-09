@@ -305,8 +305,8 @@ void doc(int pass)
 static void link(char *str, char how)
 {
 	char *id = strchr(str, how);
-	char *text = id, save, *id_end;
-	int len = 0, spccnt;
+	char *text = id, save, id_save, *id_end;
+	int len = 0, spccnt, full_url;
 
 	while (id[len] == how)
 		len++;
@@ -340,22 +340,29 @@ static void link(char *str, char how)
 	print(str);
 	*text = save;
 
+	save = *id_end;
+	*id_end = '\0';
+
+	full_url = strchr(id + len, ':') ? 1 : 0;
+
 	if (html) {
-		save = *id_end;
-		*id_end = '\0';
 		printf("<A ");
 		if (how == '@')
-			printf("HREF=\"%s", strchr(id + len, ':') ? "" : "#");
+			printf("HREF=\"%s", full_url ? "" : "#");
 		else
 			printf("NAME=\"");
 		printf("%s\">", id + len);
-		*id_end = save;
 	}
 
-	save = *id;
+	id_save = *id;
 	*id = '\0';
 	print(text);
-	*id = save;
+	*id = id_save;
+
+	if (man && full_url)
+		printf(" [%s] ", id + len);
+
+	*id_end = save;
 
 	if (html)
 		printf("</A>");
@@ -437,6 +444,8 @@ static void print(char *str)
 			printf("%c", *str - 'a' + 'A');
 		else if (man && man_nbsp && *str == ' ')
 			printf("\\ ");
+		else if (man && *str == '\\')
+			printf("\\\\");
 		else
 			printf("%c", *str);
 

@@ -6479,8 +6479,8 @@ int main(int argc, char *argv[])
 		}
 
 		if (strcmp(argv[i], "--doc") == 0) {
-			extern void doc(void);
-			doc();
+			extern void doc(int pass);
+			doc(-1);
 			exit(0);
 			continue; // not reached
 		}

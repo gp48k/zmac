@@ -88,6 +88,7 @@ the end of the command line.
   Silences a warning when using Z80.LIB.
   Allows the use of '*' in first column for comment lines.
   Accepts $-MACRO directives.
+  Multiple statements per line are separated by "!".
  
  --nmnv
   Do not interpret Z-80 or 8080 mnemonics as values in expressions.
@@ -244,6 +245,16 @@ declared with two colons (_label::_) make the label public.
 Single quotes are ignored at the end of identifiers allowing non-binding
 notation@prime indicating alternate register use during heavy applications
 of _exx_ and _ex_.
+
+Multiple statements per line are separated by _\_.  For example:
+
+_  ld  d,h_
+
+_  ld  e,l_
+
+can be written as:
+
+_  ld  d,h \ ld e,l_
 
 Here is how other things work.  Numbers are used as examples, but a full
 expression@expr can be used in their place.
@@ -985,8 +996,8 @@ _--oo rel_ or _-o file.rel_ then all other output formats are suppressed
  .ams
   AMSDOS executable format for Amstrad computers.
  .bds
-  For source-level debugging and automatic memory protecttion in
-  trs80gp@http://www.48k.ca/trs80gp.html
+  For source-level debugging and automatic memory protection
+  in trs80gp@http://www.48k.ca/trs80gp.html
  .1500.cas
   TRS-80 high-speed (1500 baud) cassette SYSTEM file.  The internal name of the
   file is the source file name shortened to 6 characters with suffixes
