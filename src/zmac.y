@@ -1057,7 +1057,7 @@ void emit(int bytes, int desc, struct expr *data, ...)
 					handled = 1;
 				}
 			}
-			else if ((data->e_scope & ~SCOPE_PUBLIC) == 0) {
+			else if (is_number(data)) {
 				// nice constant value
 				putrel(data->e_value);
 				putrel(data->e_value >> 8);
@@ -8759,7 +8759,7 @@ void expr_word_check(struct expr *ex)
 
 int is_number(struct expr *ex)
 {
-	return ex && (ex->e_scope & ~SCOPE_PUBLIC) == 0;
+	return ex && (ex->e_scope & ~(SCOPE_PUBLIC | SCOPE_TWOCHAR)) == 0;
 }
 
 int is_external(struct expr *ex)
