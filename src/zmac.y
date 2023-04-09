@@ -1044,16 +1044,27 @@ void emit(int bytes, int desc, struct expr *data, ...)
 				}
 
 				if (var) {
+					int addr;
+
 					if (var->i_chain == 0) {
 						putrel(0);
 						putrel(0);
 					}
-					else {
+					else if (var->i_chain >> 16) {
 						putrelbits(1, 1);
 						putrelextaddr(var->i_chain);
 					}
-					var->i_chain = (segment << 16) |
-						((dollarsign + args) & 0xffff);
+					else {
+						putrel(var->i_chain);
+						putrel(var->i_chain >> 8);
+					}
+
+					addr = dollarsign + args;
+
+					if (segment == SEG_ABS && phaseflag)
+						addr = phdollar + (addr - phbegin);
+
+					var->i_chain = (segment << 16) | (addr & 0xffff);
 					handled = 1;
 				}
 			}
