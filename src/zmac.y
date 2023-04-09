@@ -4128,7 +4128,9 @@ noparenexpr:
 			if (!nmnvopt) {
 				// Allow use of JMP, RET, etc. as values.
 				struct item *i = keyword($1->i_string);
-				if (item_is_verb(i)) {
+
+				// But don't allow use of pseudo-ops as values.
+				if (item_is_verb(i) && i->i_string[0] != '.') {
 					chkext = 0;
 					$1 = i;
 					$$->e_item = i;
@@ -4722,7 +4724,7 @@ struct	item	keytab[] = {
 	{"rary",	0xfdcb001e,SHIFT_XY,	VERB | Z80 | ZNONSTD },
 	{"rc",		0330,	NOOPERAND,	VERB | I8080 },
 	{".read",	PSINC,	ARGPSEUDO,	VERB },
-	{"rept",	0,	REPT,		VERB },
+	{".rept",	0,	REPT,		VERB },
 	{"res",		0145600,BIT,		VERB | Z80 },
 	{"resx",	0xddcb0086,BIT_XY,	VERB | Z80 | ZNONSTD },
 	{"resy",	0xfdcb0086,BIT_XY,	VERB | Z80 | ZNONSTD },
@@ -5490,7 +5492,7 @@ int check_keytab()
 			return 0;
 		}
 
-		// Uncomment to liat all 8080 verbs to assist documentation.
+		// Uncomment to list all 8080 verbs to assist documentation.
 		//if ((keytab[i].i_uses & (VERB | I8080)) == (VERB | I8080))
 		//	printf("\tdb\t%s\n", keytab[i].i_string);
 		// Uncomment to list all Z-80 verbs to assist documentation.
