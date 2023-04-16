@@ -658,8 +658,7 @@ char	copt = 1,	/* cycle counts in listings by default */
 	sopt = 0,	/* turn on symbol table listing */
 	topt = 1,	/* terse, only error count to terminal */
 	printer_output = 0, // GWP - printer style output
-	z80 = 1,
-	saveopt;
+	z80 = 1;
 
 char default_jopt, default_JPopt, default_z80 = 1;
 
@@ -2137,6 +2136,8 @@ void do_end(struct expr *entry)
 
 void do_if_value(int value)
 {
+	char saveopt;
+
 	if (ifptr >= ifstmax)
 		error("Too many ifs");
 	else
@@ -2370,7 +2371,7 @@ statement:
 	}
 |
 	IF2_TK '\n' {
-		do_if_value(npass == 2);
+		do_if_value(outpass);
 	}
 |
 	IF_CP_TK expression ',' expression '\n' {
@@ -2387,6 +2388,8 @@ statement:
 	}
 |
 	ELSE_TK '\n' {
+		char saveopt;
+
 		/* FIXME: it would be nice to spot repeated ELSEs, but how? */
 		*ifptr = !*ifptr;
 		saveopt = fopt;
