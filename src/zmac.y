@@ -1524,7 +1524,7 @@ void delayed_list(int optarg)
 void list_optarg(int optarg, int seg, int type)
 {
 	if (seg < 0 || !relopt)
-		seg = relopt ? segment : SEG_ABS;
+		seg = (relopt && !phaseflag) ? segment : SEG_ABS;
 
 	puthex(optarg >> 8, fout);
 	puthex(optarg, fout);
@@ -2879,7 +2879,9 @@ label.part:
 		coloncnt = $2;
 		itemcpy(&pristine_label, $1);
 		label = coloncnt == 0 ? $1 : NULL;
-		$1->i_scope |= segment;
+		if (!phaseflag)
+			$1->i_scope |= segment;
+
 		if ($2 == 2)
 			$1->i_scope |= SCOPE_PUBLIC;
 
@@ -4124,7 +4126,7 @@ noparenexpr:
 	'$'
 		{
 			$$ = expr_num(dollarsign + emitptr - emitbuf);
-			$$->e_scope = segment;
+			$$->e_scope = phaseflag ? SEG_ABS : segment;
 		}
 |
 	UNDECLARED
