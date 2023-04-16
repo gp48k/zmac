@@ -629,6 +629,8 @@ char	*writesyms;
 
 char	*title;
 char	titlespace[TITLELEN];
+char	*subtitle;
+char	subtitlespace[TITLELEN];
 char	*timp;
 char	*sourcef;
 /* changed to cope with filenames longer than 14 chars -rjm 1998-12-15 */
@@ -1674,8 +1676,9 @@ void lineout()
 		line = 0;
 	}
 	if (line == 0) {
-		fprintf(fout, "\n\n%s %s\t%s\t Page %d\n\n\n",
-			&timp[4], &timp[20], title, page++);
+		fprintf(fout, "\n\n%s %s\t%s\t Page %d\n%s\n\n",
+			&timp[4], &timp[20], title, page++,
+			subtitle ? subtitle : "");
 		line = 4;
 	}
 	line++;
@@ -1888,6 +1891,7 @@ void do_defl(struct item *sym, struct expr *val, int call_list);
 #define SPNAME	(2)	/* name */
 #define SPCOM	(3)	/* comment */
 #define SPPRAGMA (4)	/* pragma */
+#define SPRINTX (5)	/* printx */
 
 %}
 
@@ -1978,7 +1982,7 @@ void do_defl(struct item *sym, struct expr *val, int call_list);
 %token <ival> MROP_NE MROP_EQ MROP_LT MROP_GT MROP_LE MROP_GE
 %token <ival> MROP_SHIFT MROP_SHL MROP_SHR
 %token <ival> MROP_NOT MROP_LOW MROP_HIGH
-%token IF_TK
+%token IF_TK IFE_TK IF1_TK IF2_TK
 %token <itemptr> IF_DEF_TK IF_CP_TK
 %token ELSE_TK
 %token ENDIF_TK
@@ -2010,6 +2014,7 @@ void do_defl(struct item *sym, struct expr *val, int call_list);
 %token NUL
 %token <itemptr> MPARM
 %token <itemptr> TK_IN0 TK_OUT0 MLT TST TSTIO
+%token LALL SALL XALL
 
 %type <itemptr> label.part symbol
 %type <ival> allreg reg evenreg ixylhreg realreg mem memxy pushable bcdesp bcdehl bcdehlsp mar condition
@@ -2128,6 +2133,26 @@ void do_end(struct expr *entry)
 //	else
 //		peekc = 0;
 
+}
+
+void do_if_value(int value)
+{
+	if (ifptr >= ifstmax)
+		error("Too many ifs");
+	else
+		*++ifptr = !(value);
+
+	saveopt = fopt;
+	fopt = 1;
+	list(value);
+	fopt = saveopt;
+}
+
+void do_if(struct expr *expr)
+{
+	expr_number_check(expr);
+	do_if_value(expr->e_value);
+	expr_free(expr);
 }
 
 void common_block(char *unparsed_id)
@@ -2331,33 +2356,26 @@ statement:
 	}
 |
 	IF_TK expression '\n' {
+		do_if($2);
+	}
+|
+	IFE_TK expression '\n' {
 		expr_number_check($2);
-		if (ifptr >= ifstmax)
-			error("Too many ifs");
-		else
-			*++ifptr = !($2->e_value);
-
-		saveopt = fopt;
-		fopt = 1;
-		list($2->e_value);
-		fopt = saveopt;
+		do_if_value(!$2->e_value);
 		expr_free($2);
+	}
+|
+	IF1_TK '\n' {
+		do_if_value(npass == 1);
+	}
+|
+	IF2_TK '\n' {
+		do_if_value(npass == 2);
 	}
 |
 	IF_CP_TK expression ',' expression '\n' {
 		// Unpleasant duplication of IF_TK work.
-		struct expr *compare = expr_mk($2, $1->i_value , $4);
-		expr_number_check(compare);
-		if (ifptr >= ifstmax)
-			error("Too many ifs");
-		else
-			*++ifptr = !(compare->e_value);
-
-		saveopt = fopt;
-		fopt = 1;
-		list(compare->e_value);
-		fopt = saveopt;
-		expr_free(compare);
+		do_if(expr_mk($2, $1->i_value , $4));
 	}
 |
 	// IF_DEF_TK UNDECLARED '\n' might work, but probably would define the symbol
@@ -2365,16 +2383,7 @@ statement:
 		struct item *ip = locate(tempbuf);
 		int declared = ip && ip->i_pass == npass;
 		int value = declared == $1->i_value;
-
-		if (ifptr >= ifstmax)
-			error("Too many ifs");
-		else
-			*++ifptr = !value;
-
-		saveopt = fopt;
-		fopt = 1;
-		list(value);
-		fopt = saveopt;
+		do_if_value(value);
 	}
 |
 	ELSE_TK '\n' {
@@ -2549,7 +2558,14 @@ statement:
 			list1();
 			break;
 		case SPSBTL:
-			err[warn_notimpl]++;
+			cp = tempbuf;
+			subtitle = subtitlespace;
+			if (*cp == '\'' || *cp == '"')
+				quote = *cp++;
+			while ((*subtitle++ = *cp++) && (subtitle < &subtitlespace[TITLELEN]));
+			if (quote && subtitle > subtitlespace + 1 && subtitle[-2] == quote)
+				subtitle[-2] = '\0';
+			subtitle = subtitlespace;
 			list1();
 			break;
 		case SPNAME:
@@ -2587,6 +2603,13 @@ statement:
 				fprintf(fmds, "%s\n", tempbuf + 4);
 			}
 			list1();
+			break;
+
+		case SPRINTX:
+			p = tempbuf;
+			quote = *p++;
+			q = strchr(p, quote);
+			printf("%.*s\n", (int)(q - p), p);
 			break;
 		}
 	}
@@ -2834,6 +2857,21 @@ statement:
 		// popsi() must be made safe as others use it.
 		list1();
 		popsi();
+	}
+|
+	LALL '\n' {
+		err[warn_notimpl]++;
+		list1();
+	}
+|
+	SALL '\n' {
+		err[warn_notimpl]++;
+		list1();
+	}
+|
+	XALL '\n' {
+		err[warn_notimpl]++;
+		list1();
 	}
 |
 	error {
@@ -4579,12 +4617,17 @@ struct	item	keytab[] = {
 	{"hy",   	0x1FD04,IXYLH,		Z80 | UNDOC },
 	{"i",		0,	MISCREG,	Z80 },
 	{".if",		0,	IF_TK,		VERB | COL0 },
+	{".if1",	0,	IF1_TK,		VERB | COL0 },
+	{".if2",	0,	IF2_TK,		VERB | COL0 },
 	{".ifdef",	1,	IF_DEF_TK,	VERB | COL0 },
+	{".ife",	0,	IFE_TK,		VERB | COL0 },
 	{".ifeq",	'=',	IF_CP_TK,	VERB | COL0 },
+	{".iff",	0,	IFE_TK,		VERB | COL0 },
 	{".ifgt",	'>',	IF_CP_TK,	VERB | COL0 },
 	{".iflt",	'<',	IF_CP_TK,	VERB | COL0 },
 	{".ifndef",	0,	IF_DEF_TK,	VERB | COL0 },
 	{".ifne",	NE,	IF_CP_TK,	VERB | COL0 },
+	{".ift",	0,	IF_TK,		VERB | COL0 },
 	{"im",		0166506,IM,		VERB | Z80 },
 	{"im0",		0xed46,	NOOPERAND,	VERB | Z80 | ZNONSTD },
 	{"im1",		0xed56,	NOOPERAND,	VERB | Z80 | ZNONSTD },
@@ -4631,6 +4674,7 @@ struct	item	keytab[] = {
 	{"jrz",		0x28,	JR_COND,	VERB | Z80 | ZNONSTD },
 	{"jz",		0312,	JUMP8,		VERB | I8080 },
 	{"l",		5,	REGNAME,	I8080 | Z80 },
+	{".lall",	0,	LALL,		VERB | COL0 },
 	{"lbcd",	0xed4b,	LDST16,		VERB | Z80 | ZNONSTD },
 	{"ld",		0x40,	LD,		VERB | Z80 },
 	{"lda",		0x3a,	LDA,		VERB | I8080 },
@@ -4721,6 +4765,7 @@ struct	item	keytab[] = {
 	{"popix",	0xdde1,	NOOPERAND,	VERB | Z80 | ZNONSTD },
 	{"popiy",	0xfde1,	NOOPERAND,	VERB | Z80 | ZNONSTD },
 	{"pragma",	SPPRAGMA,SPECIAL,	VERB },
+	{".printx",	SPRINTX,	SPECIAL,	VERB | COL0 },
 	{"psw", 	060,	PSW,		I8080 },
 	{".public",	0,	PUBLIC,		VERB },
 	{"push",	0305,	PUSHPOP,	VERB | I8080 | Z80 },
@@ -4770,6 +4815,7 @@ struct	item	keytab[] = {
 	{"rst",		0307,	RST,		VERB | I8080 | Z80 },
 	{".rsym",	PSRSYM,	ARGPSEUDO,	VERB },
 	{"rz",		0310,	NOOPERAND,	VERB | I8080 },
+	{".sall",	0,	SALL,		VERB | COL0 },
 	{"sbb",		0230,	ARITHC,		VERB | I8080 },
 	{"sbc",		0230,	ARITHC,		VERB | Z80 },
 	{"sbcd",	0xed43,	LDST16,		VERB | Z80 | ZNONSTD },
@@ -4820,7 +4866,7 @@ struct	item	keytab[] = {
 	{"stx",		0xdd70,	ST_XY,		VERB | Z80 | ZNONSTD},
 	{"sty",		0xfd70,	ST_XY,		VERB | Z80 | ZNONSTD},
 	{"sub",		0220,	LOGICAL,	VERB | I8080 | Z80 },
-	{".subttl",	SPSBTL,	SPECIAL,	VERB },
+	{".subttl",	SPSBTL,	SPECIAL,	VERB | COL0 },
 	{"subx",	0xdd96,	ALU_XY,		VERB | Z80 | ZNONSTD },
 	{"suby",	0xfd96,	ALU_XY,		VERB | Z80 | ZNONSTD },
 	{"sui",		0326,	ALUI8,		VERB | I8080 },
@@ -4835,6 +4881,7 @@ struct	item	keytab[] = {
 	{"v",		050,	COND,		Z80 },
 	{".word",	0,	DEFW,		VERB },
 	{".wsym",	PSWSYM,	ARGPSEUDO,	VERB },
+	{".xall",	0,	XALL,		VERB | COL0 },
 	{"xchg",	0353,	NOOPERAND,	VERB | I8080 },
 	{"xh",   	0x1DD04,IXYLH,		Z80 | UNDOC },
 	{"xl",   	0x1DD05,IXYLH,		Z80 | UNDOC },
