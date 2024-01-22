@@ -785,6 +785,9 @@ operator:
   
  _endif_
 
+_%%_ appearing inside a macro will expand to the number of parameters
+passed to the macro.
+
 Macro parameters can contain commas if grouped inside _<_ and _>_.
 Or a comma can be escaped with _^_ which can also escape spaces and other
 special characters.  It is also be put in front of a macro parameter

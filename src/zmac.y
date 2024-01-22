@@ -234,6 +234,8 @@
  * gwp 18-10-22	Added *GET, IFEQ, IFEQ, IFLT, IFGT to improved MRAS support.
  *		Change FILE/EXT to FILE.EXT for includes in --mras mode.
  *		xh, xl, yh, yl, hx, lx, hy, ly alternates for ixh, ixy, iyh, iyl.
+ *
+ * gwp 21-1-24	%% expansion in macro to improve MRAS compatibility.
  */
 
 #if defined(__GNUC__)
@@ -607,8 +609,9 @@ struct item paramtab[PARAMTABSIZE];
 #define MSTR	PARMMAX+4
 #define MARGP	PARMMAX+5
 #define MIF	PARMMAX+6
+#define MNUMPAR	PARMMAX+7
 
-#define PAREXT	7
+#define PAREXT	8
 
 union exprec {
 	char *param;
@@ -2723,7 +2726,6 @@ statement:
 #endif
 		$2->i_uses++ ;
 		arg_reset();
-		parm_number = 0;
 		delayed_list(dollarsign);
 		expptr++;
 		est = est2;
@@ -2733,7 +2735,9 @@ statement:
 		est[MIF].param = ifptr;
 		est[REPNUM].value = 0;
 		est[MSTR].param = NULL;
+		est[MNUMPAR].value = parm_number;
 		floc = $2->i_value;
+		parm_number = 0;
 		mfseek(mfile, (long)floc, 0);
 	}
 |
@@ -5992,6 +5996,10 @@ int nextchar()
 
 				p = (unsigned char *)strchr((char *)p, '\0');
 			}
+			else if (ch == '\3') { // Number of arguments
+				sprintf((char *)p, "%d", est[MNUMPAR].value);
+				p = (unsigned char *)strchr((char *)p, '\0');
+			}
 			else {
 				if (ch == 0)
 					break;
@@ -7717,6 +7725,20 @@ void mlex(char *look)
 				caret = 1;
 		}
 
+		if (c == '%') {
+			int next = nextmac();
+			if (next == '%') {
+				putm('\3'); // number of arguments.
+				c = nextmac();
+			}
+			else {
+				putm('%');
+				c = next;
+			}
+
+			continue;
+		}
+
 		switch(charclass[c]) {
 
 		case DIGIT:
@@ -8081,6 +8103,7 @@ int getarg(struct argparse *ap)
 				case '^':
 				case ' ':
 				case '\t':
+				case '%':
 					*p++ = c;
 					break;
 				default:
