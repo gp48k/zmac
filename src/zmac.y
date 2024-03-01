@@ -782,6 +782,7 @@ void flushoth();
 void lineout();
 void puthex(int byte, FILE *buf);
 void putcas(int byte);
+void padcas();
 void putrelbits(int count, int bits);
 void putrel(int byte);
 void putrelname(char *str);
@@ -1370,7 +1371,7 @@ void flushoth()
 	outoth_cnt = 0;
 }
 
-int casbit, casbitcnt = 0;
+int casbit, casbitcnt = 0, cas_low_pad, cas_high_pad;
 
 void putcas(int byte)
 {
@@ -1388,6 +1389,31 @@ void putcas(int byte)
 			casbitcnt -= 8;
 			fputc(casbit >> casbitcnt, fcas);
 		}
+	}
+}
+
+void padcas()
+{
+	int pad = 6;
+	int padbit = 8 - casbitcnt;
+
+	cas_low_pad = cas_high_pad = pad * 8;
+
+	if (fcas && padbit < 8) {
+		fputc(casbit << padbit, fcas);
+		cas_high_pad += padbit;
+	}
+
+	// "Play Cas" seems to require trailing zeros to work properly.
+	while (pad-- > 0) {
+		if (flcas)
+			fputc(0, flcas);
+
+		if (flnwcas)
+			fputc(0, flnwcas);
+
+		if (fcas)
+			fputc(0, fcas);
 	}
 }
 
@@ -7057,12 +7083,7 @@ int main(int argc, char *argv[])
 		fflush(fbuf);
 	}
 
-	// "Play Cas" seems to require trailing zeros to work
-	// properly.  And we need to output at least one zero byte
-	// to flush out the final high speed bits.
-	#define CAS_PAD 6
-	for (i = 0; i < CAS_PAD; i++)
-		putcas(0);
+	padcas();
 
 	if (relopt) {
 		struct item *ip;
@@ -7185,8 +7206,8 @@ int main(int argc, char *argv[])
 			write_250(low, high);
 	}
 
-	// Output .wav files noting the padding bytes to ignore.
-	writewavs(0, CAS_PAD, CAS_PAD);
+	// Output .wav files noting the padding bits to ignore.
+	writewavs(0, cas_low_pad, cas_high_pad);
 
 	if (fbds) {
 		struct item *tp;
@@ -9403,23 +9424,28 @@ void writewavs(int pad250, int pad500, int pad1500)
 {
 	FILE *cas[] = { ftcas, flcas, flnwcas, fcas };
 	FILE *wav[] = { f250wav, f500wav, f1000wav, f1500wav };
-	int padbytes[] = { pad250, pad500, pad500, pad1500 };
-#define	NFMT (sizeof padbytes / sizeof padbytes[0])
+	int padbits[] = { pad250, pad500, pad500, pad1500 };
+#define	NFMT (sizeof padbits / sizeof padbits[0])
 	int bits[NFMT];
 	int i, j, k, m;
+#define MAXA 0xfc
+#define MIDA 0x80
+#define MINA 4
+	unsigned char intro[] = { MIDA, MIDA, MIDA, MINA };
 	unsigned char pulse[][2][13] = {
-		{ { 2, 0xff, 2, 0, 42 - 4, 0x80, 0 },
-		  { 2, 0xff, 2, 0, 17, 0x80, 2, 0xff, 2, 0, 17, 0x80, 0 } },
+		{ { 2, MAXA, 2, MINA, 42 - 4, MIDA, 0 },
+		  { 2, MAXA, 2, MINA, 17, MIDA, 2, MAXA, 2, MINA, 17, MIDA, 0 } },
 
-		{ { 3, 0xff, 3, 0, 44 - 6, 0x80, 0 },
-		  { 3, 0xff, 3, 0, 16, 0x80, 3, 0xff, 3, 0, 16, 0x80, 0 } },
+		{ { 3, MAXA, 3, MINA, 44 - 6, MIDA, 0 },
+		  { 3, MAXA, 3, MINA, 16, MIDA, 3, MAXA, 3, MINA, 16, MIDA, 0 } },
 
-		{ { 3, 0xff, 3, 0, 44 - 6, 0x80, 0 },
-		  { 3, 0xff, 3, 0, 16, 0x80, 3, 0xff, 3, 0, 16, 0x80, 0 } },
+		{ { 3, MAXA, 3, MINA, 44 - 6, MIDA, 0 },
+		  { 3, MAXA, 3, MINA, 16, MIDA, 3, MAXA, 3, MINA, 16, MIDA, 0 } },
 
-		{ { 8, 0, 8, 0xff, 0 },
-		  { 4, 0, 4, 0xff, 0 } }
+		{ { 8, MAXA, 8, MINA, 0 },
+		  { 4, MAXA, 4, MINA, 0 } }
 	};
+	unsigned char outro[] = { MIDA, MIDA, MIDA, MAXA };
 	int hz[] = { 11025, 22050, 44100, 22050 };
 	int pulse_len[NFMT][2];
 
@@ -9435,9 +9461,7 @@ void writewavs(int pad250, int pad500, int pad1500)
 		if (!cas[i] || !wav[i])
 			continue;
 
-		bits[i] = (ftell(cas[i]) - padbytes[i]) * 8;
-		if (i == 2 && casbitcnt > 0)
-			bits[i] -= 8 - casbitcnt;
+		bits[i] = ftell(cas[i]) * 8 - padbits[i];
 	}
 
 	for (i = 0; i < NFMT; i++) {
@@ -9486,7 +9510,7 @@ void writewavs(int pad250, int pad500, int pad1500)
 		fwrite(waveHeader, waveHeaderSize, 1, wav[i]);
 
 		for (j = 0; j < headPad; j++)
-			fputc(0x80, wav[i]);
+			fputc(intro[i], wav[i]);
 
 		bitget_rewind(cas[i]);
 		for (j = 0; j < bits[i]; j++) {
@@ -9497,8 +9521,12 @@ void writewavs(int pad250, int pad500, int pad1500)
 		}
 
 		for (j = 0; j < tailPad; j++)
-			fputc(0x80, wav[i]);
+			fputc(outro[i], wav[i]);
 	}
+#undef NFMT
+#undef MAXA
+#undef MIDA
+#undef MINA
 }
 
 int sized_byteswap(int value)
